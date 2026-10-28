@@ -28,3 +28,11 @@ if (!$conn) {
 
 // 5. Atur karakter set utf8mb4
 mysqli_set_charset($conn, 'utf8mb4');
+
+// 6. Pastikan autocommit aktif
+mysqli_autocommit($conn, true);
+
+// 7. Jalankan Inisialisasi Skema DataStore D4
+require_once __DIR__ . '/../includes/functions_auth.php';
+require_once __DIR__ . '/../includes/functions_admin.php';
+inisialisasi_tabel_pengguna($conn);

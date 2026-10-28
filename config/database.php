@@ -64,3 +64,11 @@ if (!$conn) {
 
 // 5. Atur karakter set utf8mb4 untuk dukungan teks nusantara dan simbol penuh
 mysqli_set_charset($conn, 'utf8mb4');
+
+// 6. Pastikan autocommit aktif agar setiap manipulasi tersimpan permanen ke MySQL
+mysqli_autocommit($conn, true);
+
+// 7. Jalankan Inisialisasi Skema DataStore D4 (HANYA migrasi struktur & HANYA seed jika tabel benar-benar kosong 0 baris)
+require_once __DIR__ . '/../includes/functions_auth.php';
+require_once __DIR__ . '/../includes/functions_admin.php';
+inisialisasi_tabel_pengguna($conn);

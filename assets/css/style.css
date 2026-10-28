@@ -1,164 +1,167 @@
 /* ==========================================================================
    AntarRasa - Sistem Pemesanan & Pengantaran Makanan Online
-   Gaya Tampilan Modern (Optimasi Desktop 1280x720 & Responsif)
+   Super-App Modern UI/UX (GoFood / GrabFood / ShopeeFood Style)
+   Optimasi Desktop 1280x720+ & Fully Responsive
    ========================================================================== */
 
+/* --------------------------------------------------------------------------
+   1. Design Tokens & Global CSS Variables
+   -------------------------------------------------------------------------- */
 :root {
-    --ar-primary: #ff5e14;
-    --ar-primary-dark: #e04b06;
-    --ar-primary-light: #fff2eb;
-    --ar-secondary: #0f172a;
-    --ar-accent: #10b981;
-    --ar-bg: #f8fafc;
-    --ar-card-bg: #ffffff;
-    --ar-text-main: #1e293b;
-    --ar-text-muted: #64748b;
-    --ar-border: #e2e8f0;
+    /* Customer Theme (GoFood / ShopeeFood) */
+    --cf-primary: #ee4d2d;
+    --cf-primary-dark: #d73211;
+    --cf-primary-light: #fff0ed;
+    --cf-secondary: #ff5722;
+    --cf-green: #00aa13;
+    --cf-green-light: #e8f9eb;
+    
+    /* Merchant Theme (GoBiz / GrabMerchant) */
+    --mb-primary: #4f46e5;
+    --mb-primary-dark: #3730a3;
+    --mb-primary-light: #eef2ff;
+    --mb-accent: #0ea5e9;
+    --mb-warning: #f59e0b;
+    
+    /* Driver Theme (GoPartner / GrabDriver) */
+    --dr-dark: #0f172a;
+    --dr-surface: #1e293b;
+    --dr-green: #10b981;
+    --dr-green-glow: rgba(16, 185, 129, 0.35);
+    --dr-accent: #38bdf8;
+    
+    /* Admin Backoffice Theme */
+    --ad-sidebar: #0f172a;
+    --ad-sidebar-hover: #1e293b;
+    --ad-sidebar-active: #334155;
+    --ad-primary: #6366f1;
+    --ad-border: #e2e8f0;
+
+    /* Global Neutrals */
+    --bg-main: #f8fafc;
+    --text-heading: #0f172a;
+    --text-body: #334155;
+    --text-muted: #64748b;
+    --card-bg: #ffffff;
+    --border-color: #e2e8f0;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 15px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
 
 body {
-    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--ar-bg);
-    color: var(--ar-text-main);
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-main);
+    color: var(--text-body);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    letter-spacing: -0.2px;
 }
 
-/* Navbar */
-.navbar-antarrasa {
-    background-color: #ffffff;
-    border-bottom: 1px solid var(--ar-border);
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+/* --------------------------------------------------------------------------
+   2. Customer UI Components (GoFood / ShopeeFood Style)
+   -------------------------------------------------------------------------- */
+
+/* Customer Navbar */
+.navbar-customer {
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 12px rgba(238, 77, 45, 0.04);
 }
 
-.brand-logo {
+.brand-customer {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     font-size: 1.45rem;
     font-weight: 800;
-    color: var(--ar-primary);
+    color: var(--cf-primary);
     text-decoration: none;
-    letter-spacing: -0.5px;
 }
 
-.brand-badge {
-    font-size: 0.65rem;
+.brand-badge-customer {
+    font-size: 0.68rem;
     font-weight: 700;
-    background-color: var(--ar-primary-light);
-    color: var(--ar-primary);
-    padding: 3px 8px;
+    background-color: var(--cf-primary-light);
+    color: var(--cf-primary);
+    padding: 3px 9px;
     border-radius: 20px;
-    vertical-align: middle;
+    border: 1px solid rgba(238, 77, 45, 0.2);
 }
 
-/* Hero Banner */
-.hero-banner {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    color: #ffffff;
-    border-radius: 16px;
-    padding: 2.2rem 2.5rem;
-    position: relative;
-    overflow: hidden;
-    margin-bottom: 2rem;
-    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
-}
-
-.hero-banner::after {
-    content: '';
-    position: absolute;
-    top: -50px;
-    right: -50px;
-    width: 250px;
-    height: 250px;
-    background: radial-gradient(circle, rgba(255, 94, 20, 0.25) 0%, rgba(255, 94, 20, 0) 70%);
-    border-radius: 50%;
-}
-
-/* Stepper Workflow */
-.stepper-wrapper {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 2rem;
-    background: #ffffff;
-    padding: 1.25rem 2rem;
-    border-radius: 14px;
-    border: 1px solid var(--ar-border);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
-}
-
-.stepper-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    position: relative;
-    color: var(--ar-text-muted);
-}
-
-.stepper-item:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    right: 20px;
-    top: 50%;
-    width: calc(100% - 160px);
-    height: 2px;
-    background: var(--ar-border);
-    transform: translateY(-50%);
-    z-index: 1;
-}
-
-.stepper-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: #f1f5f9;
-    color: var(--ar-text-muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.95rem;
-    z-index: 2;
+.search-box-customer {
+    border-radius: 25px;
+    padding-left: 2.2rem;
+    background-color: #f1f5f9;
+    border: 1px solid transparent;
     transition: all 0.2s ease;
 }
 
-.stepper-title {
+.search-box-customer:focus {
+    background-color: #ffffff;
+    border-color: var(--cf-primary);
+    box-shadow: 0 0 0 3px rgba(238, 77, 45, 0.15);
+}
+
+/* Customer Promo Hero Banner */
+.promo-hero-customer {
+    background: linear-gradient(120deg, #ee4d2d 0%, #ff5722 55%, #ff8a00 100%);
+    color: #ffffff;
+    border-radius: 20px;
+    padding: 2.5rem 3rem;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    box-shadow: 0 12px 30px rgba(238, 77, 45, 0.25);
+}
+
+.promo-hero-customer::after {
+    content: '';
+    position: absolute;
+    right: -30px;
+    bottom: -50px;
+    width: 280px;
+    height: 280px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 70%);
+    border-radius: 50%;
+}
+
+/* Category Filter Chips */
+.category-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    border-radius: 30px;
     font-size: 0.88rem;
     font-weight: 600;
-    line-height: 1.2;
+    color: var(--text-body);
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    cursor: pointer;
 }
 
-.stepper-desc {
-    font-size: 0.75rem;
-    color: var(--ar-text-muted);
+.category-chip:hover {
+    color: var(--cf-primary);
+    border-color: var(--cf-primary);
+    background: var(--cf-primary-light);
 }
 
-.stepper-item.active .stepper-icon {
-    background: var(--ar-primary);
+.category-chip.active {
     color: #ffffff;
-    box-shadow: 0 0 0 4px var(--ar-primary-light);
+    background: var(--cf-primary);
+    border-color: var(--cf-primary);
+    box-shadow: 0 4px 12px rgba(238, 77, 45, 0.3);
 }
 
-.stepper-item.active .stepper-title {
-    color: var(--ar-primary);
-}
-
-.stepper-item.completed .stepper-icon {
-    background: var(--ar-accent);
-    color: #ffffff;
-}
-
-.stepper-item.completed .stepper-title {
-    color: var(--ar-accent);
-}
-
-/* Card Menu */
-.menu-card {
-    background: var(--ar-card-bg);
-    border: 1px solid var(--ar-border);
-    border-radius: 16px;
+/* Food Cards (GoFood / ShopeeFood Style) */
+.food-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
     overflow: hidden;
     transition: transform 0.25s ease, box-shadow 0.25s ease;
     height: 100%;
@@ -166,172 +169,565 @@ body {
     flex-direction: column;
 }
 
-.menu-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.08);
+.food-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08);
+    border-color: #fca5a5;
 }
 
-.menu-card-img-wrap {
-    height: 185px;
+.food-card-img-wrap {
+    height: 190px;
     position: relative;
     overflow: hidden;
     background: #f1f5f9;
 }
 
-.menu-card-img {
+.food-card-img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.4s ease;
+    transition: transform 0.45s ease;
 }
 
-.menu-card:hover .menu-card-img {
-    transform: scale(1.05);
+.food-card:hover .food-card-img {
+    transform: scale(1.06);
 }
 
-.menu-card-badge {
+.food-badge-stock {
     position: absolute;
     top: 12px;
     right: 12px;
     z-index: 2;
     font-size: 0.75rem;
     font-weight: 700;
-    padding: 5px 10px;
+    padding: 5px 12px;
     border-radius: 30px;
 }
 
-.menu-card-body {
+.food-badge-available {
+    background-color: var(--cf-green);
+    color: #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 170, 19, 0.35);
+}
+
+.food-badge-soldout {
+    background-color: #334155;
+    color: #ffffff;
+}
+
+.food-card-body {
     padding: 1.25rem;
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
-.menu-card-title {
-    font-size: 1.1rem;
+.food-card-title {
+    font-size: 1.12rem;
     font-weight: 700;
-    color: var(--ar-secondary);
+    color: var(--text-heading);
     margin-bottom: 0.35rem;
 }
 
-.menu-card-desc {
+.food-card-desc {
     font-size: 0.85rem;
-    color: var(--ar-text-muted);
+    color: var(--text-muted);
     line-height: 1.45;
     margin-bottom: 1rem;
     flex: 1;
 }
 
-.menu-card-price {
-    font-size: 1.2rem;
+.food-card-price {
+    font-size: 1.25rem;
     font-weight: 800;
-    color: var(--ar-primary);
+    color: var(--cf-primary);
 }
 
-.btn-primary-custom {
-    background-color: var(--ar-primary);
-    border-color: var(--ar-primary);
+/* Quantity Control Stepper */
+.qty-stepper {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 25px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.qty-stepper-btn {
+    border: none;
+    background: transparent;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cf-primary);
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.qty-stepper-btn:hover {
+    background-color: var(--cf-primary-light);
+}
+
+.qty-stepper-input {
+    border: none;
+    width: 38px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-heading);
+    outline: none;
+    background: transparent;
+}
+
+/* Floating Checkout Bar */
+.floating-checkout-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 960px;
+    background: linear-gradient(135deg, #ee4d2d 0%, #ff5722 100%);
     color: #ffffff;
-    font-weight: 600;
-    padding: 0.55rem 1.15rem;
-    border-radius: 10px;
+    border-radius: 20px;
+    padding: 1rem 1.75rem;
+    box-shadow: 0 12px 35px rgba(238, 77, 45, 0.4);
+    z-index: 1050;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    animation: slideUp 0.35s ease;
+}
+
+@keyframes slideUp {
+    from { transform: translate(-50%, 40px); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   3. Order Tracking Timeline (Animation Stepper for status.php)
+   -------------------------------------------------------------------------- */
+.tracking-stepper-wrap {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 2rem;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.track-step-item {
+    position: relative;
+    padding-left: 54px;
+    padding-bottom: 34px;
+}
+
+.track-step-item:last-child {
+    padding-bottom: 0;
+}
+
+.track-step-item::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 40px;
+    bottom: 0;
+    width: 3px;
+    background: #e2e8f0;
+}
+
+.track-step-item:last-child::before {
+    display: none;
+}
+
+.track-step-item.completed::before {
+    background: var(--cf-green);
+}
+
+.track-step-icon {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    transition: all 0.3s ease;
+}
+
+.track-step-item.active .track-step-icon {
+    background: var(--cf-primary);
+    color: #ffffff;
+    box-shadow: 0 0 0 6px var(--cf-primary-light);
+    animation: pulseActive 2s infinite;
+}
+
+.track-step-item.completed .track-step-icon {
+    background: var(--cf-green);
+    color: #ffffff;
+}
+
+@keyframes pulseActive {
+    0% { box-shadow: 0 0 0 0 rgba(238, 77, 45, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(238, 77, 45, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(238, 77, 45, 0); }
+}
+
+/* Digital Receipt */
+.receipt-digital {
+    background: #ffffff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 18px;
+    padding: 1.75rem;
+    position: relative;
+}
+
+/* --------------------------------------------------------------------------
+   4. Merchant UI Components (GoBiz / GrabMerchant Style)
+   -------------------------------------------------------------------------- */
+.navbar-merchant {
+    background-color: #ffffff;
+    border-bottom: 2px solid var(--mb-primary-light);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.05);
+}
+
+.brand-merchant {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--mb-primary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.merchant-badge-online {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+
+/* Kitchen Ticket Card */
+.kitchen-ticket {
+    background: #ffffff;
+    border: 1px solid #e0e7ff;
+    border-left: 6px solid var(--mb-primary);
+    border-radius: 16px;
+    padding: 1.4rem;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.04);
+    margin-bottom: 1.25rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kitchen-ticket:hover {
+    box-shadow: 0 8px 22px rgba(79, 70, 229, 0.09);
+    transform: translateY(-2px);
+}
+
+.kitchen-ticket.waiting {
+    border-left-color: var(--mb-warning);
+}
+
+.kitchen-ticket.cooking {
+    border-left-color: var(--mb-accent);
+}
+
+.ticket-item-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px dashed #e2e8f0;
+    font-size: 0.92rem;
+}
+
+.ticket-item-row:last-child {
+    border-bottom: none;
+}
+
+/* --------------------------------------------------------------------------
+   5. Driver UI Components (GoPartner / GrabDriver Style)
+   -------------------------------------------------------------------------- */
+.header-driver-hud {
+    background-color: var(--dr-surface);
+    color: #ffffff;
+    border-bottom: 2px solid #334155;
+    padding: 1rem 0;
+}
+
+.driver-badge-live {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid var(--dr-green);
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 6px 14px;
+    border-radius: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.driver-pulse-dot {
+    width: 9px;
+    height: 9px;
+    background-color: #10b981;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #10b981;
+    animation: blinkOnline 1.5s infinite;
+}
+
+@keyframes blinkOnline {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.driver-card-job {
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.driver-location-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+}
+
+.btn-driver-pickup {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    border: none;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 0.85rem 1.5rem;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
     transition: all 0.2s ease;
 }
 
-.btn-primary-custom:hover, .btn-primary-custom:focus {
-    background-color: var(--ar-primary-dark);
-    border-color: var(--ar-primary-dark);
+.btn-driver-pickup:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
     color: #ffffff;
-    box-shadow: 0 4px 12px rgba(255, 94, 20, 0.35);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+}
+
+.btn-driver-finish {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: #ffffff;
+    border: none;
+    font-weight: 700;
+    border-radius: 12px;
+    padding: 0.85rem 1.5rem;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
+    transition: all 0.2s ease;
+}
+
+.btn-driver-finish:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+    color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   6. Admin UI Components (Executive Backoffice Dashboard)
+   -------------------------------------------------------------------------- */
+.admin-layout-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+.admin-sidebar {
+    width: 260px;
+    background-color: var(--ad-sidebar);
+    color: #ffffff;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #1e293b;
+    z-index: 1000;
+}
+
+.admin-sidebar-brand {
+    padding: 1.5rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-nav-item {
+    padding: 0.8rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.admin-nav-item:hover {
+    color: #ffffff;
+    background-color: var(--ad-sidebar-hover);
+}
+
+.admin-nav-item.active {
+    color: #ffffff;
+    background-color: var(--ad-sidebar-active);
+    border-left-color: var(--ad-primary);
+}
+
+.admin-main-content {
+    flex: 1;
+    background-color: var(--bg-main);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.admin-topbar {
+    background: #ffffff;
+    border-bottom: 1px solid var(--ad-border);
+    padding: 0.9rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.admin-stat-card {
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease;
+}
+
+.admin-stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+}
+
+/* --------------------------------------------------------------------------
+   7. Split-Screen Auth Layout (login.php & register.php)
+   -------------------------------------------------------------------------- */
+.auth-split-wrapper {
+    min-height: 100vh;
+    display: flex;
+}
+
+.auth-split-hero {
+    flex: 1;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    color: #ffffff;
+    padding: 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-split-hero::after {
+    content: '';
+    position: absolute;
+    top: -60px;
+    right: -60px;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(238, 77, 45, 0.25) 0%, rgba(238, 77, 45, 0) 70%);
+    border-radius: 50%;
+}
+
+.auth-split-form-wrap {
+    width: 520px;
+    max-width: 100%;
+    background: #ffffff;
+    padding: 3.5rem 3rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.04);
+}
+
+.demo-btn-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem;
+    transition: all 0.2s ease;
+    background: #ffffff;
+    text-align: left;
+    width: 100%;
+}
+
+.demo-btn-card:hover {
+    border-color: var(--cf-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* --------------------------------------------------------------------------
+   8. Global Buttons & Utilities
+   -------------------------------------------------------------------------- */
+.btn-primary-custom {
+    background-color: var(--cf-primary);
+    border-color: var(--cf-primary);
+    color: #ffffff;
+    font-weight: 600;
+    border-radius: 12px;
+    padding: 0.6rem 1.3rem;
+    transition: all 0.2s ease;
+}
+
+.btn-primary-custom:hover {
+    background-color: var(--cf-primary-dark);
+    border-color: var(--cf-primary-dark);
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(238, 77, 45, 0.35);
 }
 
 .btn-outline-custom {
-    border: 1px solid var(--ar-border);
-    color: var(--ar-text-main);
+    border: 1px solid var(--border-color);
     background: #ffffff;
+    color: var(--text-heading);
     font-weight: 600;
-    border-radius: 10px;
+    border-radius: 12px;
+    padding: 0.6rem 1.3rem;
+    transition: all 0.2s ease;
 }
 
 .btn-outline-custom:hover {
     background: #f1f5f9;
-    color: var(--ar-primary);
+    color: var(--cf-primary);
+    border-color: #cbd5e1;
 }
 
-/* Order Summary Box */
-.order-summary-card {
-    background: #ffffff;
-    border: 1px solid var(--ar-border);
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
-}
+.cursor-pointer { cursor: pointer; }
 
-/* Simulation Controls */
-.simulation-panel {
-    border: 2px dashed #94a3b8;
-    background: #f8fafc;
-    border-radius: 14px;
-    padding: 1.25rem;
-}
-
-/* Tracking Timeline */
-.timeline-item {
-    position: relative;
-    padding-left: 38px;
-    padding-bottom: 28px;
-}
-
-.timeline-item:last-child {
-    padding-bottom: 0;
-}
-
-.timeline-item::before {
-    content: '';
-    position: absolute;
-    left: 14px;
-    top: 26px;
-    bottom: -4px;
-    width: 2px;
-    background: var(--ar-border);
-}
-
-.timeline-item:last-child::before {
-    display: none;
-}
-
-.timeline-dot {
-    position: absolute;
-    left: 0;
-    top: 2px;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    background: #e2e8f0;
-    color: #64748b;
-}
-
-.timeline-item.active .timeline-dot {
-    background: var(--ar-primary);
-    color: #ffffff;
-    box-shadow: 0 0 0 4px var(--ar-primary-light);
-}
-
-.timeline-item.passed .timeline-dot {
-    background: var(--ar-accent);
-    color: #ffffff;
-}
-
-/* Footer */
-footer {
-    margin-top: auto;
-    background: #ffffff;
-    border-top: 1px solid var(--ar-border);
-    padding: 1.5rem 0;
-    font-size: 0.85rem;
-    color: var(--ar-text-muted);
+/* Responsive Adjustments */
+@media (max-width: 991.98px) {
+    .auth-split-hero { display: none; }
+    .auth-split-form-wrap { width: 100%; padding: 2rem; }
+    .admin-sidebar { width: 70px; }
+    .admin-sidebar-text { display: none; }
+    .admin-sidebar-brand span { display: none; }
 }

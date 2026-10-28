@@ -3,8 +3,9 @@ declare(strict_types=1);
 
 /**
  * Modul Fungsi Bisnis Pemesanan "AntarRasa" (Murni Prosedural)
- * Memenuhi P-Spec Proses 1.0 (Kelola Pesanan) & Dasar Proses 2.0 / 3.0
- * 
+ * Memenuhi P-Spec Proses 1.0 (Kelola Pesanan), 2.0 (Pembayaran), 3.0 (Pengantaran)
+ * serta Manajemen Menu (Merchant) & Statistik (Admin).
+ *
  * Aturan PHP 8:
  * - declare(strict_types=1) aktif
  * - Parameter type hint & return type declaration pada seluruh fungsi
@@ -65,6 +66,100 @@ function ambil_menu_by_id($conn, int $id_menu): ?array
     
     mysqli_stmt_close($stmt);
     return $data;
+}
+
+/**
+ * Menambahkan hidangan baru ke DataStore D1 (MENU) - Fitur Merchant
+ *
+ * @param mysqli $conn
+ * @param string $nama_menu
+ * @param float $harga
+ * @param string $deskripsi
+ * @param string $status_menu
+ * @return int|false ID menu baru jika berhasil, false jika gagal
+ */
+function tambah_menu_makanan($conn, string $nama_menu, float $harga, string $deskripsi, string $status_menu = 'Tersedia'): int|false
+{
+    $nama_bersih = trim($nama_menu);
+    if ($nama_bersih === '' || $harga < 0.0) {
+        return false;
+    }
+
+    $status_valid = ['Tersedia', 'Habis'];
+    if (!in_array($status_menu, $status_valid, true)) {
+        $status_menu = 'Tersedia';
+    }
+
+    $sql = "INSERT INTO MENU (nama_menu, harga, deskripsi, status_menu) VALUES (?, ?, ?, ?)";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        return false;
+    }
+
+    mysqli_stmt_bind_param($stmt, "sdss", $nama_bersih, $harga, $deskripsi, $status_menu);
+    $eksekusi = mysqli_stmt_execute($stmt);
+
+    if (!$eksekusi) {
+        mysqli_stmt_close($stmt);
+        return false;
+    }
+
+    $id_baru = mysqli_insert_id($conn);
+    mysqli_stmt_close($stmt);
+
+    return $id_baru > 0 ? $id_baru : false;
+}
+
+/**
+ * Mengubah status ketersediaan menu ('Tersedia' / 'Habis') - Fitur Merchant
+ *
+ * @param mysqli $conn
+ * @param int $id_menu
+ * @param string $status_baru
+ * @return bool
+ */
+function ubah_status_menu($conn, int $id_menu, string $status_baru): bool
+{
+    $status_valid = ['Tersedia', 'Habis'];
+    if (!in_array($status_baru, $status_valid, true)) {
+        return false;
+    }
+
+    $sql = "UPDATE MENU SET status_menu = ? WHERE id_menu = ?";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        return false;
+    }
+
+    mysqli_stmt_bind_param($stmt, "si", $status_baru, $id_menu);
+    $sukses = mysqli_stmt_execute($stmt);
+    $affected = mysqli_stmt_affected_rows($stmt);
+    mysqli_stmt_close($stmt);
+
+    return $sukses && ($affected >= 0);
+}
+
+/**
+ * Menghapus menu dari DataStore D1 (MENU) - Fitur Merchant
+ *
+ * @param mysqli $conn
+ * @param int $id_menu
+ * @return bool
+ */
+function hapus_menu($conn, int $id_menu): bool
+{
+    $sql = "DELETE FROM MENU WHERE id_menu = ?";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        return false;
+    }
+
+    mysqli_stmt_bind_param($stmt, "i", $id_menu);
+    $sukses = mysqli_stmt_execute($stmt);
+    $affected = mysqli_stmt_affected_rows($stmt);
+    mysqli_stmt_close($stmt);
+
+    return $sukses && ($affected > 0);
 }
 
 /**
@@ -178,14 +273,15 @@ function validasi_pesanan(array $pilihan_menu, string $alamat, array $menu_maste
 
 /**
  * Menyimpan transaksi pesanan ke DataStore D2 (PESANAN) dan D3 (DETAIL_PESANAN)
- * Menggunakan transaksi MySQLi dan prepared statements prosedural murni
+ * Mendukung penyimpanan id_pengguna (D4: PENGGUNA) jika customer telah login
  *
  * @param mysqli $conn Objek koneksi MySQLi
  * @param string $alamat Alamat pengiriman yang sudah divalidasi
  * @param array $detail_items Array rincian item hasil validasi
+ * @param int|null $id_pengguna ID pengguna yang membuat pesanan (nullable)
  * @return int|false Mengembalikan id_pesanan baru jika berhasil, false jika gagal
  */
-function simpan_pesanan($conn, string $alamat, array $detail_items): int|false
+function simpan_pesanan($conn, string $alamat, array $detail_items, ?int $id_pengguna = null): int|false
 {
     if (empty($detail_items)) {
         return false;
@@ -198,15 +294,28 @@ function simpan_pesanan($conn, string $alamat, array $detail_items): int|false
     mysqli_begin_transaction($conn);
 
     // 2. Insert ke DataStore D2 (PESANAN)
-    $sql_pesanan = "INSERT INTO PESANAN (alamat_pengiriman, total_harga, status_pesanan) VALUES (?, ?, ?)";
-    $stmt_pesanan = mysqli_prepare($conn, $sql_pesanan);
+    if ($id_pengguna !== null && $id_pengguna > 0) {
+        $sql_pesanan = "INSERT INTO PESANAN (id_pengguna, alamat_pengiriman, total_harga, status_pesanan) VALUES (?, ?, ?, ?)";
+        $stmt_pesanan = mysqli_prepare($conn, $sql_pesanan);
 
-    if (!$stmt_pesanan) {
-        mysqli_rollback($conn);
-        return false;
+        if (!$stmt_pesanan) {
+            mysqli_rollback($conn);
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt_pesanan, "isds", $id_pengguna, $alamat, $total_harga, $status_awal);
+    } else {
+        $sql_pesanan = "INSERT INTO PESANAN (id_pengguna, alamat_pengiriman, total_harga, status_pesanan) VALUES (NULL, ?, ?, ?)";
+        $stmt_pesanan = mysqli_prepare($conn, $sql_pesanan);
+
+        if (!$stmt_pesanan) {
+            mysqli_rollback($conn);
+            return false;
+        }
+
+        mysqli_stmt_bind_param($stmt_pesanan, "sds", $alamat, $total_harga, $status_awal);
     }
 
-    mysqli_stmt_bind_param($stmt_pesanan, "sds", $alamat, $total_harga, $status_awal);
     $eksekusi_pesanan = mysqli_stmt_execute($stmt_pesanan);
 
     if (!$eksekusi_pesanan) {
@@ -264,7 +373,7 @@ function simpan_pesanan($conn, string $alamat, array $detail_items): int|false
 // =====================================================================
 
 /**
- * Mengambil informasi pesanan dari DataStore D2 (PESANAN)
+ * Mengambil informasi pesanan dari DataStore D2 (PESANAN) JOIN D4 (PENGGUNA)
  *
  * @param mysqli $conn
  * @param int $id_pesanan
@@ -272,9 +381,12 @@ function simpan_pesanan($conn, string $alamat, array $detail_items): int|false
  */
 function ambil_pesanan_by_id($conn, int $id_pesanan): ?array
 {
-    $sql = "SELECT id_pesanan, tanggal_pesanan, alamat_pengiriman, total_harga, status_pesanan 
-            FROM PESANAN 
-            WHERE id_pesanan = ? 
+    $sql = "SELECT p.id_pesanan, p.id_pengguna, p.tanggal_pesanan, p.alamat_pengiriman, 
+                   p.total_harga, p.status_pesanan,
+                   u.nama_lengkap AS nama_pemesan, u.username AS username_pemesan
+            FROM PESANAN p 
+            LEFT JOIN PENGGUNA u ON p.id_pengguna = u.id_pengguna
+            WHERE p.id_pesanan = ? 
             LIMIT 1";
     
     $stmt = mysqli_prepare($conn, $sql);
@@ -332,26 +444,53 @@ function ambil_detail_pesanan($conn, int $id_pesanan): array
 }
 
 /**
- * Mengambil daftar seluruh pesanan (untuk monitoring & riwayat)
+ * Mengambil daftar pesanan (dengan opsi filter status dan id_pengguna)
  *
  * @param mysqli $conn
  * @param int $limit
+ * @param string|null $status_filter
+ * @param int|null $id_pengguna
  * @return array
  */
-function ambil_semua_pesanan($conn, int $limit = 20): array
+function ambil_semua_pesanan($conn, int $limit = 50, ?string $status_filter = null, ?int $id_pengguna = null): array
 {
     $daftar = [];
-    $sql = "SELECT id_pesanan, tanggal_pesanan, alamat_pengiriman, total_harga, status_pesanan 
-            FROM PESANAN 
-            ORDER BY id_pesanan DESC 
-            LIMIT ?";
-            
+    $sql = "SELECT p.id_pesanan, p.id_pengguna, p.tanggal_pesanan, p.alamat_pengiriman, 
+                   p.total_harga, p.status_pesanan,
+                   u.nama_lengkap AS nama_pemesan, u.username AS username_pemesan 
+            FROM PESANAN p 
+            LEFT JOIN PENGGUNA u ON p.id_pengguna = u.id_pengguna";
+
+    $conditions = [];
+    $params = [];
+    $types = "";
+
+    if ($status_filter !== null && $status_filter !== '') {
+        $conditions[] = "p.status_pesanan = ?";
+        $params[] = $status_filter;
+        $types .= "s";
+    }
+
+    if ($id_pengguna !== null && $id_pengguna > 0) {
+        $conditions[] = "p.id_pengguna = ?";
+        $params[] = $id_pengguna;
+        $types .= "i";
+    }
+
+    if (!empty($conditions)) {
+        $sql .= " WHERE " . implode(" AND ", $conditions);
+    }
+
+    $sql .= " ORDER BY p.id_pesanan DESC LIMIT ?";
+    $params[] = $limit;
+    $types .= "i";
+
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         return $daftar;
     }
 
-    mysqli_stmt_bind_param($stmt, "i", $limit);
+    mysqli_stmt_bind_param($stmt, $types, ...$params);
     mysqli_stmt_execute($stmt);
 
     $hasil = mysqli_stmt_get_result($stmt);
@@ -366,7 +505,6 @@ function ambil_semua_pesanan($conn, int $limit = 20): array
 
 /**
  * Memperbarui kolom status_pesanan pada DataStore D2 (PESANAN)
- * Mendukung simulasi proses pembayaran dan pengiriman
  *
  * @param mysqli $conn
  * @param int $id_pesanan
@@ -395,8 +533,134 @@ function update_status_pesanan($conn, int $id_pesanan, string $status_baru): boo
     return $sukses && ($affected >= 0);
 }
 
+/**
+ * Mengambil data akun driver aktif langsung dari tabel PENGGUNA (DataStore D4)
+ * Murni membaca database tanpa fallback dummy/hardcoded
+ *
+ * @param mixed $conn Objek koneksi MySQLi prosedural
+ * @param int|null $id_driver ID driver spesifik (opsional)
+ * @return array|null Asosiatif [id_pengguna, username, nama_lengkap, peran] atau null jika belum ada kurir terdaftar
+ */
+function ambil_driver_aktif($conn, ?int $id_driver = null): ?array
+{
+    if ($id_driver !== null && $id_driver > 0) {
+        $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM PENGGUNA WHERE id_pengguna = ? AND peran = 'driver' LIMIT 1";
+        $stmt = mysqli_prepare($conn, $sql);
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "i", $id_driver);
+            mysqli_stmt_execute($stmt);
+            $res = mysqli_stmt_get_result($stmt);
+            $driver = ($res && mysqli_num_rows($res) > 0) ? mysqli_fetch_assoc($res) : null;
+            mysqli_stmt_close($stmt);
+            if ($driver !== null) {
+                return $driver;
+            }
+        }
+    }
+
+    $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM PENGGUNA WHERE peran = 'driver' ORDER BY id_pengguna ASC LIMIT 1";
+    $query = mysqli_query($conn, $sql);
+    if ($query !== false) {
+        $driver = mysqli_fetch_assoc($query);
+        mysqli_free_result($query);
+        return $driver ?: null;
+    }
+
+    return null;
+}
+
+/**
+ * Mengambil data akun merchant/restoran langsung dari tabel PENGGUNA (DataStore D4)
+ * Murni membaca database tanpa fallback dummy/hardcoded
+ *
+ * @param mixed $conn Objek koneksi MySQLi prosedural
+ * @param int|null $id_merchant ID merchant spesifik (opsional)
+ * @return array|null Asosiatif [id_pengguna, username, nama_lengkap, peran] atau null jika belum ada merchant terdaftar
+ */
+function ambil_merchant_aktif($conn, ?int $id_merchant = null): ?array
+{
+    if ($id_merchant !== null && $id_merchant > 0) {
+        $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM PENGGUNA WHERE id_pengguna = ? AND peran = 'merchant' LIMIT 1";
+        $stmt = mysqli_prepare($conn, $sql);
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "i", $id_merchant);
+            mysqli_stmt_execute($stmt);
+            $res = mysqli_stmt_get_result($stmt);
+            $merchant = ($res && mysqli_num_rows($res) > 0) ? mysqli_fetch_assoc($res) : null;
+            mysqli_stmt_close($stmt);
+            if ($merchant !== null) {
+                return $merchant;
+            }
+        }
+    }
+
+    $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM PENGGUNA WHERE peran = 'merchant' ORDER BY id_pengguna ASC LIMIT 1";
+    $query = mysqli_query($conn, $sql);
+    if ($query !== false) {
+        $merchant = mysqli_fetch_assoc($query);
+        mysqli_free_result($query);
+        return $merchant ?: null;
+    }
+
+    return null;
+}
+
 // =====================================================================
-// 3. FUNGSI PENGELOLAAN KERANJANG SEMENTARA (SESSION PROSEDURAL)
+// 3. FUNGSI STATISTIK (DASHBOARD ADMIN, MERCHANT, DRIVER)
+// =====================================================================
+
+/**
+ * Menghitung metrik statistik untuk Dashboard Administrator
+ *
+ * @param mysqli $conn
+ * @return array
+ */
+function hitung_statistik_admin($conn): array
+{
+    $stats = [
+        'total_pengguna'   => 0,
+        'total_menu'       => 0,
+        'total_pesanan'    => 0,
+        'total_pendapatan' => 0.0,
+    ];
+
+    // Total Pengguna
+    $q_user = mysqli_query($conn, "SELECT COUNT(*) as jml FROM PENGGUNA");
+    if ($q_user !== false) {
+        $row = mysqli_fetch_assoc($q_user);
+        $stats['total_pengguna'] = (int) ($row['jml'] ?? 0);
+        mysqli_free_result($q_user);
+    }
+
+    // Total Menu
+    $q_menu = mysqli_query($conn, "SELECT COUNT(*) as jml FROM MENU");
+    if ($q_menu !== false) {
+        $row = mysqli_fetch_assoc($q_menu);
+        $stats['total_menu'] = (int) ($row['jml'] ?? 0);
+        mysqli_free_result($q_menu);
+    }
+
+    // Total Pesanan
+    $q_pesanan = mysqli_query($conn, "SELECT COUNT(*) as jml FROM PESANAN");
+    if ($q_pesanan !== false) {
+        $row = mysqli_fetch_assoc($q_pesanan);
+        $stats['total_pesanan'] = (int) ($row['jml'] ?? 0);
+        mysqli_free_result($q_pesanan);
+    }
+
+    // Total Pendapatan (Pesanan yang sudah dibayar: Diproses, Dikirim, Selesai)
+    $q_rev = mysqli_query($conn, "SELECT SUM(total_harga) as rev FROM PESANAN WHERE status_pesanan IN ('Diproses', 'Dikirim', 'Selesai')");
+    if ($q_rev !== false) {
+        $row = mysqli_fetch_assoc($q_rev);
+        $stats['total_pendapatan'] = (float) ($row['rev'] ?? 0.0);
+        mysqli_free_result($q_rev);
+    }
+
+    return $stats;
+}
+
+// =====================================================================
+// 4. FUNGSI PENGELOLAAN KERANJANG SEMENTARA (SESSION PROSEDURAL)
 // =====================================================================
 
 /**
@@ -500,8 +764,35 @@ function hitung_jumlah_item_keranjang(): int
     return $total_item;
 }
 
+/**
+ * Menghitung total nominal harga seluruh item yang ada di keranjang belanja
+ *
+ * @param mixed $conn
+ * @return float
+ */
+function hitung_total_nominal_keranjang($conn): float
+{
+    $keranjang = ambil_keranjang();
+    if (empty($keranjang)) {
+        return 0.0;
+    }
+    $total = 0.0;
+    $menu_list = ambil_semua_menu($conn);
+    $lookup = [];
+    foreach ($menu_list as $m) {
+        $lookup[(int) $m['id_menu']] = (float) $m['harga'];
+    }
+    foreach ($keranjang as $id => $qty) {
+        $id_int = (int) $id;
+        if (isset($lookup[$id_int])) {
+            $total += $lookup[$id_int] * (int) $qty;
+        }
+    }
+    return round($total, 2);
+}
+
 // =====================================================================
-// 4. FUNGSI PEMBANTU (HELPERS) FORMAT & KEAMANAN OUTPUT
+// 5. FUNGSI PEMBANTU (HELPERS) FORMAT & KEAMANAN OUTPUT
 // =====================================================================
 
 /**
@@ -586,7 +877,7 @@ function dapatkan_gambar_menu(string $nama_menu): string
 
     if (str_contains($nama_lower, 'nasi goreng')) {
         return 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=700&q=80';
-    } elseif (str_contains($nama_lower, 'ayam bakar') || str_contains($nama_lower, 'taliwang')) {
+    } elseif (str_contains($nama_lower, 'ayam') || str_contains($nama_lower, 'taliwang')) {
         return 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=700&q=80';
     } elseif (str_contains($nama_lower, 'rendang')) {
         return 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?auto=format&fit=crop&w=700&q=80';
@@ -596,6 +887,8 @@ function dapatkan_gambar_menu(string $nama_menu): string
         return 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=700&q=80';
     } elseif (str_contains($nama_lower, 'cendol') || str_contains($nama_lower, 'durian') || str_contains($nama_lower, 'es')) {
         return 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=700&q=80';
+    } elseif (str_contains($nama_lower, 'kebab') || str_contains($nama_lower, 'burger')) {
+        return 'https://images.unsplash.com/photo-1561758033-d89a9ad46330?auto=format&fit=crop&w=700&q=80';
     }
 
     // Default Indonesian food placeholder
