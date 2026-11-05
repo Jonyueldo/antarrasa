@@ -125,6 +125,17 @@ function ubah_status_menu($conn, int $id_menu, string $status_baru): bool
         return false;
     }
 
+    // Periksa eksistensi baris lebih dulu agar id fiktif tidak dilaporkan sukses
+    $menu = ambil_menu_by_id($conn, $id_menu);
+    if ($menu === null) {
+        return false;
+    }
+
+    // Status sudah sama: tidak ada yang perlu diubah (MySQL akan memberi affected_rows = 0)
+    if ((string) $menu['status_menu'] === $status_baru) {
+        return true;
+    }
+
     $sql = "UPDATE MENU SET status_menu = ? WHERE id_menu = ?";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
@@ -136,7 +147,7 @@ function ubah_status_menu($conn, int $id_menu, string $status_baru): bool
     $affected = mysqli_stmt_affected_rows($stmt);
     mysqli_stmt_close($stmt);
 
-    return $sukses && ($affected >= 0);
+    return $sukses && ($affected > 0);
 }
 
 /**
@@ -569,6 +580,17 @@ function update_status_pesanan($conn, int $id_pesanan, string $status_baru): boo
         return false;
     }
 
+    // Periksa eksistensi baris lebih dulu agar id fiktif tidak dilaporkan sukses
+    $pesanan = ambil_pesanan_by_id($conn, $id_pesanan);
+    if ($pesanan === null) {
+        return false;
+    }
+
+    // Status sudah sama: tidak ada yang perlu diubah (MySQL akan memberi affected_rows = 0)
+    if ((string) $pesanan['status_pesanan'] === $status_baru) {
+        return true;
+    }
+
     $sql = "UPDATE PESANAN SET status_pesanan = ? WHERE id_pesanan = ?";
     $stmt = mysqli_prepare($conn, $sql);
 
@@ -581,7 +603,7 @@ function update_status_pesanan($conn, int $id_pesanan, string $status_baru): boo
     $affected = mysqli_stmt_affected_rows($stmt);
     mysqli_stmt_close($stmt);
 
-    return $sukses && ($affected >= 0);
+    return $sukses && ($affected > 0);
 }
 
 /**
