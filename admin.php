@@ -143,7 +143,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_admin'])) {
 }
 
 // Ambil metrik statistik & rekap per peran
-$statistik = hitung_statistik_admin($conn);
+// Periode statistik (opsional, dari input type="date"; divalidasi di hitung_statistik_admin)
+$statistik = hitung_statistik_admin(
+    $conn,
+    isset($_GET['dari']) ? (string) $_GET['dari'] : null,
+    isset($_GET['sampai']) ? (string) $_GET['sampai'] : null
+);
 $rekap_peran = hitung_rekap_peran_pengguna($conn);
 
 // Ambil daftar pengguna (dengan opsi filter peran)
@@ -194,6 +199,26 @@ require_once __DIR__ . '/includes/header.php';
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 <?php endif; ?>
+
+<!-- Filter Periode Statistik -->
+<form method="GET" action="admin.php" class="d-flex flex-wrap align-items-end gap-2 mb-3">
+    <?php if ($filter_peran !== ''): ?>
+        <input type="hidden" name="filter_peran" value="<?= e($filter_peran) ?>">
+    <?php endif; ?>
+    <div>
+        <label for="stat-dari" class="form-label small fw-semibold text-muted mb-1">Periode dari</label>
+        <input type="date" class="form-control form-control-sm" id="stat-dari" name="dari" value="<?= e($statistik['dari'] ?? '') ?>">
+    </div>
+    <div>
+        <label for="stat-sampai" class="form-label small fw-semibold text-muted mb-1">sampai</label>
+        <input type="date" class="form-control form-control-sm" id="stat-sampai" name="sampai" value="<?= e($statistik['sampai'] ?? '') ?>">
+    </div>
+    <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-funnel me-1"></i>Terapkan</button>
+    <?php if (($statistik['dari'] ?? null) !== null || ($statistik['sampai'] ?? null) !== null): ?>
+        <a href="admin.php<?= $filter_peran !== '' ? '?filter_peran=' . e(urlencode($filter_peran)) : '' ?>" class="btn btn-sm btn-link text-decoration-none">Reset</a>
+    <?php endif; ?>
+    <span class="small text-muted ms-md-2 mb-1"><i class="bi bi-calendar-range me-1"></i>Periode: <strong><?= e($statistik['label_periode']) ?></strong></span>
+</form>
 
 <!-- 4 Kartu Metrik Ringkasan Sistem (Backoffice KPI Cards) -->
 <div class="row g-3 mb-4">
@@ -246,7 +271,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
             <div class="text-muted small mt-2" style="font-size: 0.78rem;">
-                Seluruh transaksi tersimpan
+                Transaksi periode: <?= e($statistik['label_periode']) ?>
             </div>
         </div>
     </div>
@@ -266,7 +291,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
             <div class="text-muted small mt-2" style="font-size: 0.78rem;">
-                Pesanan lunas &amp; selesai
+                Pesanan dibayar/diproses, dikirim &amp; selesai &bull; <?= e($statistik['label_periode']) ?>
             </div>
         </div>
     </div>

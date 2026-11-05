@@ -143,7 +143,7 @@ proteksi CSRF, bug logika yang membuat tampilan salah secara faktual, dan file d
 - [x] **28. Timestamp per tahap dan timeline akurat** — isi `waktu_diproses`, `waktu_dikirim`, dan `waktu_selesai` di `update_status_pesanan()`, lalu tampilkan di timeline `status.php:154-225`.
 - [x] **29. Validasi pesanan di dalam transaksi** (L9, L10) — `simpan_pesanan()` membaca ulang harga dan `status_menu` di dalam `mysqli_begin_transaction()`. `validasi_pesanan()` membuang item `Habis` dengan pesan informatif, bukan menggagalkan seluruh checkout.
 - [x] **30. Samakan validasi harga** (L8) — `tambah_menu_makanan()` menolak `harga <= 0` agar sejalan dengan `merchant.php:43`.
-- [ ] **31. Perbaiki label statistik** (L5, L6) — tambah parameter rentang tanggal pada `hitung_statistik_admin()`, lalu hitung "hari ini" dengan `DATE(tanggal_pesanan) = CURDATE()` di `merchant.php` dan `driver.php`, atau perbaiki labelnya agar jujur.
+- [x] **31. Perbaiki label statistik** (L5, L6) — tambah parameter rentang tanggal pada `hitung_statistik_admin()`, lalu hitung "hari ini" dengan `DATE(tanggal_pesanan) = CURDATE()` di `merchant.php` dan `driver.php`, atau perbaiki labelnya agar jujur.
 - [ ] **32. Hilangkan N+1 query** (L11) — buat `ambil_detail_pesanan_massal($conn, array $id_pesanan): array` memakai `WHERE id_pesanan IN (...)` dengan placeholder dinamis, lalu pakai di `merchant.php:228` dan `driver.php:144,229`.
 
 ## 5. PRIORITAS TAMBAHAN — Polish dan Fitur Pelengkap

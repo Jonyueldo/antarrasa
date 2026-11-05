@@ -60,6 +60,10 @@ $pesanan_siap_antar  = ambil_semua_pesanan($conn, 25, 'Diproses');
 $pesanan_dalam_antar = ambil_semua_pesanan($conn, 25, 'Dikirim');
 $pesanan_selesai     = ambil_semua_pesanan($conn, 15, 'Selesai');
 
+// "Tuntas Hari Ini": driver melihat hitungan miliknya sendiri, admin melihat semua driver
+$id_driver_statistik = (($pengguna['peran'] ?? '') === 'driver') ? (int) $pengguna['id_pengguna'] : null;
+$jumlah_selesai_hari_ini = hitung_selesai_hari_ini($conn, $id_driver_statistik);
+
 $judul_halaman = 'Panel Pengantaran Driver - AntarRasa';
 $tampilkan_stepper = false;
 
@@ -103,7 +107,7 @@ require_once __DIR__ . '/includes/header.php';
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small fw-semibold text-uppercase">Tuntas Hari Ini</span>
-                    <h3 class="fw-extrabold text-success mb-0 mt-1"><?= count($pesanan_selesai) ?></h3>
+                    <h3 class="fw-extrabold text-success mb-0 mt-1"><?= $jumlah_selesai_hari_ini ?></h3>
                 </div>
                 <div class="bg-success-subtle text-success p-3 rounded-circle">
                     <i class="bi bi-check2-circle fs-4"></i>

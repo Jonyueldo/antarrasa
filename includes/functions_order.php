@@ -1072,18 +1072,76 @@ function ambil_merchant_aktif($conn, ?int $id_merchant = null): ?array
 // =====================================================================
 
 /**
- * Menghitung metrik statistik untuk Dashboard Administrator
+ * Memvalidasi string tanggal format Y-m-d (misal dari input type="date")
+ *
+ * @param string|null $tanggal
+ * @return string|null Tanggal valid atau null
+ */
+function bersihkan_tanggal(?string $tanggal): ?string
+{
+    if ($tanggal === null || $tanggal === '') {
+        return null;
+    }
+    $dt = DateTime::createFromFormat('!Y-m-d', $tanggal);
+    return ($dt !== false && $dt->format('Y-m-d') === $tanggal) ? $tanggal : null;
+}
+
+/**
+ * Menyusun klausa WHERE rentang tanggal_pesanan yang tetap memakai indeks
+ * (tanggal_pesanan >= dari AND tanggal_pesanan < sampai + 1 hari).
+ *
+ * @param string|null $dari Y-m-d (sudah divalidasi)
+ * @param string|null $sampai Y-m-d (sudah divalidasi)
+ * @return array{0: string, 1: string, 2: array} [klausa SQL, tipe bind, nilai bind]
+ */
+function klausa_rentang_tanggal(?string $dari, ?string $sampai): array
+{
+    $syarat = [];
+    $tipe = '';
+    $nilai = [];
+    if ($dari !== null) {
+        $syarat[] = "tanggal_pesanan >= ?";
+        $tipe .= 's';
+        $nilai[] = $dari . ' 00:00:00';
+    }
+    if ($sampai !== null) {
+        $syarat[] = "tanggal_pesanan < DATE_ADD(?, INTERVAL 1 DAY)";
+        $tipe .= 's';
+        $nilai[] = $sampai;
+    }
+    return [implode(' AND ', $syarat), $tipe, $nilai];
+}
+
+/**
+ * Menghitung metrik statistik untuk Dashboard Administrator.
+ * Total pesanan & perputaran dapat dibatasi rentang tanggal; tanpa rentang = sepanjang waktu.
+ * Perputaran hanya menghitung pesanan yang sudah dibayar/diterima (Diproses, Dikirim, Selesai);
+ * sejak ada state machine (tugas 21) status ini tidak bisa lagi dibolak-balik sembarangan.
  *
  * @param mysqli $conn
+ * @param string|null $dari Tanggal awal Y-m-d (inklusif)
+ * @param string|null $sampai Tanggal akhir Y-m-d (inklusif)
  * @return array
  */
-function hitung_statistik_admin($conn): array
+function hitung_statistik_admin($conn, ?string $dari = null, ?string $sampai = null): array
 {
+    $dari = bersihkan_tanggal($dari);
+    $sampai = bersihkan_tanggal($sampai);
+    if ($dari !== null && $sampai !== null && $dari > $sampai) {
+        [$dari, $sampai] = [$sampai, $dari];
+    }
+
     $stats = [
         'total_pengguna'   => 0,
         'total_menu'       => 0,
         'total_pesanan'    => 0,
         'total_pendapatan' => 0.0,
+        'dari'             => $dari,
+        'sampai'           => $sampai,
+        'label_periode'    => ($dari === null && $sampai === null)
+            ? 'Sepanjang waktu'
+            : (($dari !== null ? date('d M Y', (int) strtotime($dari)) : 'Awal') . ' – '
+                . ($sampai !== null ? date('d M Y', (int) strtotime($sampai)) : 'Hari ini')),
     ];
 
     // Total Pengguna
@@ -1102,23 +1160,56 @@ function hitung_statistik_admin($conn): array
         mysqli_free_result($q_menu);
     }
 
-    // Total Pesanan
-    $q_pesanan = mysqli_query($conn, "SELECT COUNT(*) as jml FROM pesanan");
-    if ($q_pesanan !== false) {
-        $row = mysqli_fetch_assoc($q_pesanan);
+    // Total Pesanan & Perputaran dalam periode (prepared statement berparameter tanggal)
+    [$syarat_tgl, $tipe_tgl, $nilai_tgl] = klausa_rentang_tanggal($dari, $sampai);
+    $where_tgl = $syarat_tgl !== '' ? " AND $syarat_tgl" : '';
+    $sql = "SELECT COUNT(*) AS jml,
+                   COALESCE(SUM(CASE WHEN status_pesanan IN ('Diproses', 'Dikirim', 'Selesai') THEN total_harga ELSE 0 END), 0) AS rev
+            FROM pesanan WHERE 1 = 1{$where_tgl}";
+    $stmt = mysqli_prepare($conn, $sql);
+    if ($stmt) {
+        if ($tipe_tgl !== '') {
+            mysqli_stmt_bind_param($stmt, $tipe_tgl, ...$nilai_tgl);
+        }
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        $row = $res !== false ? mysqli_fetch_assoc($res) : null;
         $stats['total_pesanan'] = (int) ($row['jml'] ?? 0);
-        mysqli_free_result($q_pesanan);
-    }
-
-    // Total Pendapatan (Pesanan yang sudah dibayar: Diproses, Dikirim, Selesai)
-    $q_rev = mysqli_query($conn, "SELECT SUM(total_harga) as rev FROM pesanan WHERE status_pesanan IN ('Diproses', 'Dikirim', 'Selesai')");
-    if ($q_rev !== false) {
-        $row = mysqli_fetch_assoc($q_rev);
         $stats['total_pendapatan'] = (float) ($row['rev'] ?? 0.0);
-        mysqli_free_result($q_rev);
+        mysqli_stmt_close($stmt);
     }
 
     return $stats;
+}
+
+/**
+ * Menghitung pesanan yang BENAR-BENAR selesai hari ini (tanggal server).
+ * Memakai waktu_selesai; data lama tanpa waktu_selesai jatuh ke tanggal_pesanan.
+ *
+ * @param mysqli $conn
+ * @param int|null $id_driver Batasi ke driver tertentu (null = semua)
+ * @return int
+ */
+function hitung_selesai_hari_ini($conn, ?int $id_driver = null): int
+{
+    $sql = "SELECT COUNT(*) FROM pesanan
+            WHERE status_pesanan = 'Selesai'
+              AND DATE(COALESCE(waktu_selesai, tanggal_pesanan)) = CURDATE()";
+    if ($id_driver !== null) {
+        $sql .= " AND id_driver = ?";
+    }
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        return 0;
+    }
+    if ($id_driver !== null) {
+        mysqli_stmt_bind_param($stmt, "i", $id_driver);
+    }
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $row = $res !== false ? mysqli_fetch_row($res) : null;
+    mysqli_stmt_close($stmt);
+    return (int) ($row[0] ?? 0);
 }
 
 // =====================================================================

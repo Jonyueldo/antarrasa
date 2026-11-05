@@ -136,7 +136,8 @@ $semua_pesanan = ambil_semua_pesanan($conn, 40);
 
 // Pisahkan pesanan aktif dapur (Menunggu & Diproses)
 $antrean_dapur = [];
-$pesanan_selesai_hari_ini = 0;
+// "Tuntas Hari Ini" dihitung dari tanggal server, bukan dari N baris terakhir
+$pesanan_selesai_hari_ini = hitung_selesai_hari_ini($conn);
 $total_menu_tersedia = 0;
 
 foreach ($daftar_menu as $m) {
@@ -149,8 +150,6 @@ foreach ($semua_pesanan as $p) {
     $st = (string) $p['status_pesanan'];
     if ($st === 'Menunggu' || $st === 'Diproses') {
         $antrean_dapur[] = $p;
-    } elseif ($st === 'Selesai') {
-        $pesanan_selesai_hari_ini++;
     }
 }
 
