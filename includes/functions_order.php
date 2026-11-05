@@ -1002,21 +1002,33 @@ function update_status_pesanan($conn, int $id_pesanan, string $status_baru, ?int
     ];
     $set_waktu = isset($kolom_waktu[$status_baru]) ? ", {$kolom_waktu[$status_baru]} = NOW()" : '';
 
-    $catat_driver = ($status_baru === 'Dikirim' && $id_driver !== null && $id_driver > 0);
-    $sql = $catat_driver
-        ? "UPDATE pesanan SET status_pesanan = ?{$set_waktu}, id_driver = ? WHERE id_pesanan = ? AND status_pesanan = ?"
-        : "UPDATE pesanan SET status_pesanan = ?{$set_waktu} WHERE id_pesanan = ? AND status_pesanan = ?";
-    $stmt = mysqli_prepare($conn, $sql);
+    // Klaim tugas EKSKLUSIF driver (ditegakkan di SQL agar atomik):
+    // - ke 'Dikirim' : hanya jika belum diklaim driver lain (id_driver NULL / milik sendiri)
+    // - ke 'Selesai' : hanya oleh driver yang mengklaim pesanan tersebut
+    // Tanpa $id_driver (misal admin) tidak ada pembatasan kepemilikan.
+    $ada_driver = ($id_driver !== null && $id_driver > 0);
+    if ($ada_driver && $status_baru === 'Dikirim') {
+        $sql = "UPDATE pesanan SET status_pesanan = ?{$set_waktu}, id_driver = ?
+                WHERE id_pesanan = ? AND status_pesanan = ? AND (id_driver IS NULL OR id_driver = ?)";
+        $tipe = "siisi";
+        $nilai = [$status_baru, $id_driver, $id_pesanan, $status_lama, $id_driver];
+    } elseif ($ada_driver && $status_baru === 'Selesai') {
+        $sql = "UPDATE pesanan SET status_pesanan = ?{$set_waktu}
+                WHERE id_pesanan = ? AND status_pesanan = ? AND id_driver = ?";
+        $tipe = "sisi";
+        $nilai = [$status_baru, $id_pesanan, $status_lama, $id_driver];
+    } else {
+        $sql = "UPDATE pesanan SET status_pesanan = ?{$set_waktu} WHERE id_pesanan = ? AND status_pesanan = ?";
+        $tipe = "sis";
+        $nilai = [$status_baru, $id_pesanan, $status_lama];
+    }
 
+    $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         return false;
     }
 
-    if ($catat_driver) {
-        mysqli_stmt_bind_param($stmt, "siis", $status_baru, $id_driver, $id_pesanan, $status_lama);
-    } else {
-        mysqli_stmt_bind_param($stmt, "sis", $status_baru, $id_pesanan, $status_lama);
-    }
+    mysqli_stmt_bind_param($stmt, $tipe, ...$nilai);
     $sukses = mysqli_stmt_execute($stmt);
     $affected = mysqli_stmt_affected_rows($stmt);
     mysqli_stmt_close($stmt);
@@ -1431,6 +1443,60 @@ function ambil_menu_terlaris($conn, int $limit = 5, ?int $id_merchant = null): a
               LIMIT ?";
     $tipe .= 'i';
     $nilai[] = max(1, $limit);
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        return [];
+    }
+    mysqli_stmt_bind_param($stmt, $tipe, ...$nilai);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $data = $res !== false ? mysqli_fetch_all($res, MYSQLI_ASSOC) : [];
+    mysqli_stmt_close($stmt);
+    return $data;
+}
+
+/**
+ * Mengambil daftar tugas driver per jenis tab:
+ * - 'tersedia' : pesanan Diproses yang BELUM diklaim driver mana pun (id_driver NULL)
+ * - 'saya'     : pesanan Dikirim yang diklaim driver ini (admin: semua yang sedang dikirim)
+ * - 'selesai'  : pesanan Selesai yang diantar driver ini (admin: semua)
+ *
+ * @param mysqli $conn
+ * @param string $jenis 'tersedia' | 'saya' | 'selesai'
+ * @param int|null $id_driver Driver login; null = admin (tanpa batasan kepemilikan)
+ * @param int $limit
+ * @return array
+ */
+function ambil_tugas_driver($conn, string $jenis, ?int $id_driver, int $limit = 25): array
+{
+    $syarat = match ($jenis) {
+        'tersedia' => "p.status_pesanan = 'Diproses' AND p.id_driver IS NULL",
+        'saya'     => "p.status_pesanan = 'Dikirim'",
+        'selesai'  => "p.status_pesanan = 'Selesai'",
+        default    => null,
+    };
+    if ($syarat === null) {
+        return [];
+    }
+
+    $tipe = '';
+    $nilai = [];
+    if ($jenis !== 'tersedia' && $id_driver !== null) {
+        $syarat .= " AND p.id_driver = ?";
+        $tipe .= 'i';
+        $nilai[] = $id_driver;
+    }
+    $tipe .= 'i';
+    $nilai[] = max(1, $limit);
+
+    $sql = "SELECT p.id_pesanan, p.id_pengguna, p.id_driver, p.tanggal_pesanan, p.alamat_pengiriman,
+                   p.total_harga, p.status_pesanan,
+                   u.nama_lengkap AS nama_pemesan, u.username AS username_pemesan
+            FROM pesanan p
+            LEFT JOIN pengguna u ON p.id_pengguna = u.id_pengguna
+            WHERE $syarat
+            ORDER BY p.id_pesanan " . ($jenis === 'tersedia' ? 'ASC' : 'DESC') . " LIMIT ?";
 
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {

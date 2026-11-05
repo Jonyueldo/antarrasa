@@ -158,7 +158,7 @@ proteksi CSRF, bug logika yang membuat tampilan salah secara faktual, dan file d
 - [x] **40. Laporan transaksi admin dan ekspor CSV** — filter rentang tanggal dan status, lalu ekspor memakai `header('Content-Type: text/csv')`.
 - [x] **41. Batalkan dan pesan ulang** — transisi `Menunggu` ke `Dibatalkan` oleh customer pemilik, serta tombol "Pesan Lagi" yang mengisi ulang keranjang dari `detail_pesanan`. Tambahkan status `Dibatalkan` **hanya** di `dapatkan_info_status()`.
 - [x] **42. Menu terlaris dan pendapatan driver** — agregasi `SUM(jumlah) GROUP BY id_menu` untuk merchant, dan total pengantaran per `id_driver` untuk driver.
-- [ ] **43. Klaim tugas eksklusif driver** — sembunyikan pesanan yang `id_driver`-nya sudah terisi driver lain, dan sediakan tab "Tugas Saya" versus "Tersedia".
+- [x] **43. Klaim tugas eksklusif driver** — sembunyikan pesanan yang `id_driver`-nya sudah terisi driver lain, dan sediakan tab "Tugas Saya" versus "Tersedia".
 - [ ] **44. Detail per-item di riwayat** — tampilkan rincian item di `riwayat.php`, bukan hanya total.
 - [ ] **45. Perbarui dokumentasi** — di `README.md`: tulis langkah setup baru, selaraskan klaim keamanan dengan kondisi sebenarnya, dan pastikan versi PHP yang ditulis sesuai runtime terverifikasi yaitu PHP 8.5.12.
 

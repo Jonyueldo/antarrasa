@@ -35,30 +35,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_driver'])) {
         $id_driver_login = (($pengguna['peran'] ?? '') === 'driver') ? (int) $pengguna['id_pengguna'] : null;
         $sukses = update_status_pesanan($conn, $id_pesanan, $status_tujuan, $id_driver_login);
         if ($sukses) {
-            $pesan_sukses = "Status pesanan #{$id_pesanan} berhasil diperbarui menjadi '{$status_tujuan}'!";
+            $pesan_sukses = $status_tujuan === 'Dikirim'
+                ? "Pesanan #{$id_pesanan} berhasil Anda klaim. Silakan antar ke alamat pelanggan."
+                : "Pesanan #{$id_pesanan} selesai diantar. Terima kasih!";
         } else {
-            $pesan_error = "Gagal memperbarui pesanan #{$id_pesanan}: alur status tidak valid (harus Diproses → Dikirim → Selesai) atau pesanan sudah diperbarui pihak lain.";
+            $pesan_error = $status_tujuan === 'Dikirim'
+                ? "Pesanan #{$id_pesanan} tidak dapat diambil: sudah diklaim driver lain atau statusnya bukan lagi 'Diproses'."
+                : "Pesanan #{$id_pesanan} tidak dapat diselesaikan: hanya driver yang mengambil pesanan ini yang dapat menyelesaikannya.";
         }
     }
 }
 
 // Pola PRG (Post/Redirect/Get): setiap POST selalu diakhiri redirect agar
-// refresh browser tidak mengirim ulang update status
+// refresh browser tidak mengirim ulang update status. Setelah aksi, buka tab "Tugas Saya".
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $tujuan = 'driver.php';
+    $tujuan = 'driver.php?tab=saya';
     if ($pesan_error !== '') {
-        $tujuan .= '?pesan_error=' . urlencode($pesan_error);
+        $tujuan .= '&pesan_error=' . urlencode($pesan_error);
     } elseif ($pesan_sukses !== '') {
-        $tujuan .= '?pesan_sukses=' . urlencode($pesan_sukses);
+        $tujuan .= '&pesan_sukses=' . urlencode($pesan_sukses);
     }
     header("Location: {$tujuan}");
     exit;
 }
 
-// Ambil pesanan berdasarkan kategori status
-$pesanan_siap_antar  = ambil_semua_pesanan($conn, 25, 'Diproses');
-$pesanan_dalam_antar = ambil_semua_pesanan($conn, 25, 'Dikirim');
-$pesanan_selesai     = ambil_semua_pesanan($conn, 15, 'Selesai');
+// Driver hanya melihat miliknya sendiri; admin (null) melihat semua driver
+$id_driver_statistik = (($pengguna['peran'] ?? '') === 'driver') ? (int) $pengguna['id_pengguna'] : null;
+
+// Klaim tugas eksklusif: "Tersedia" = belum diklaim siapa pun, "Tugas Saya" = diklaim driver ini
+$pesanan_siap_antar  = ambil_tugas_driver($conn, 'tersedia', $id_driver_statistik, 25);
+$pesanan_dalam_antar = ambil_tugas_driver($conn, 'saya', $id_driver_statistik, 25);
+$pesanan_selesai     = ambil_tugas_driver($conn, 'selesai', $id_driver_statistik, 15);
+
+// Tab aktif (tanpa JavaScript): default "Tugas Saya" bila sedang ada antaran, selain itu "Tersedia"
+$tab_aktif = (string) ($_GET['tab'] ?? '');
+if (!in_array($tab_aktif, ['saya', 'tersedia'], true)) {
+    $tab_aktif = empty($pesanan_dalam_antar) ? 'tersedia' : 'saya';
+}
 
 // Rincian item kedua daftar diambil dalam SATU query (bukan per pesanan di dalam loop)
 $detail_tugas = ambil_detail_pesanan_massal(
@@ -67,7 +80,6 @@ $detail_tugas = ambil_detail_pesanan_massal(
 );
 
 // "Tuntas Hari Ini": driver melihat hitungan miliknya sendiri, admin melihat semua driver
-$id_driver_statistik = (($pengguna['peran'] ?? '') === 'driver') ? (int) $pengguna['id_pengguna'] : null;
 $jumlah_selesai_hari_ini = hitung_selesai_hari_ini($conn, $id_driver_statistik);
 
 // Rekap pengantaran per id_driver: driver melihat miliknya, admin melihat semua driver
@@ -183,8 +195,25 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 <?php endif; ?>
 
+<!-- Tab Tugas: "Tugas Saya" (diklaim driver ini) vs "Tersedia" (belum diklaim siapa pun) -->
+<ul class="nav nav-pills mb-4 gap-2">
+    <li class="nav-item">
+        <a class="nav-link <?= $tab_aktif === 'saya' ? 'active' : 'border' ?>" href="driver.php?tab=saya" <?= $tab_aktif === 'saya' ? 'aria-current="page"' : '' ?>>
+            <i class="bi bi-person-badge me-1" aria-hidden="true"></i> Tugas Saya
+            <span class="badge <?= $tab_aktif === 'saya' ? 'bg-light text-dark' : 'bg-primary' ?> ms-1"><?= count($pesanan_dalam_antar) ?></span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link <?= $tab_aktif === 'tersedia' ? 'active' : 'border' ?>" href="driver.php?tab=tersedia" <?= $tab_aktif === 'tersedia' ? 'aria-current="page"' : '' ?>>
+            <i class="bi bi-box-seam me-1" aria-hidden="true"></i> Tersedia
+            <span class="badge <?= $tab_aktif === 'tersedia' ? 'bg-light text-dark' : 'bg-warning text-dark' ?> ms-1"><?= count($pesanan_siap_antar) ?></span>
+        </a>
+    </li>
+</ul>
+
+<?php if ($tab_aktif === 'saya'): ?>
 <!-- =====================================================================
-     BAGIAN 1: PESANAN SEDANG DALAM PENGANTARAN (STATUS: 'Dikirim')
+     BAGIAN 1 (TAB "TUGAS SAYA"): PESANAN YANG SEDANG ANDA ANTAR (STATUS: 'Dikirim')
      ===================================================================== -->
 <div class="mb-5">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -268,9 +297,10 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     <?php endif; ?>
 </div>
+<?php else: ?>
 
 <!-- =====================================================================
-     BAGIAN 2: TUGAS SIAP DIJEMPUT DI RESTORAN (STATUS: 'Diproses')
+     BAGIAN 2 (TAB "TERSEDIA"): TUGAS SIAP DIJEMPUT, BELUM DIKLAIM DRIVER LAIN
      ===================================================================== -->
 <div class="mb-5">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -354,6 +384,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
     <?php endif; ?>
 </div>
+<?php endif; ?>
 
 <!-- =====================================================================
      BAGIAN 3: RIWAYAT PENGANTARAN SELESAI
