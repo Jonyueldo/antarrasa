@@ -261,7 +261,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm rounded-4 mb-4" role="alert">
         <i class="bi bi-check-circle-fill fs-5 me-2 text-success"></i>
         <div><?= e($pesan_sukses) ?></div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>
 
@@ -269,7 +269,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center shadow-sm rounded-4 mb-4" role="alert">
         <i class="bi bi-exclamation-triangle-fill fs-5 me-2 text-danger"></i>
         <div><?= e($pesan_error) ?></div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>
 

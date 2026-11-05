@@ -84,7 +84,7 @@ body {
     font-size: 0.68rem;
     font-weight: 700;
     background-color: var(--cf-primary-light);
-    color: var(--cf-primary);
+    color: #c2410c; /* kontras 4.7:1 (warna --cf-primary hanya 3.3:1) */
     padding: 3px 9px;
     border-radius: 20px;
     border: 1px solid rgba(238, 77, 45, 0.2);
@@ -205,7 +205,8 @@ body {
 }
 
 .food-badge-available {
-    background-color: var(--cf-green);
+    /* #007a0e: kontras 5.5:1 terhadap teks putih (warna --cf-green hanya 3.1:1) */
+    background-color: #007a0e;
     color: #ffffff;
     box-shadow: 0 3px 8px rgba(0, 170, 19, 0.35);
 }
@@ -727,6 +728,42 @@ body {
 .cursor-pointer { cursor: pointer; }
 
 .min-w-0 { min-width: 0; }
+
+/* --------------------------------------------------------------------------
+   Aksesibilitas: focus ring yang jelas saat navigasi keyboard (Tab)
+   -------------------------------------------------------------------------- */
+:focus-visible {
+    outline: 3px solid #2563eb;
+    outline-offset: 2px;
+}
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible,
+.form-check-input:focus-visible,
+.category-chip:focus-visible,
+.qty-stepper-btn:focus-visible,
+.demo-btn-card:focus-visible,
+.dropdown-item:focus-visible,
+.nav-link:focus-visible {
+    outline: 3px solid #2563eb !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.25) !important;
+}
+/* Di latar gelap (sidebar admin, HUD driver) ring dibuat terang agar tetap terlihat */
+.admin-sidebar :focus-visible,
+.header-driver-hud :focus-visible {
+    outline-color: #93c5fd !important;
+}
+
+/* Aksesibilitas: kontras badge minimal 4.5:1 (WCAG AA).
+   Kombinasi bawaan bg-*-subtle + text-* hanya 1.5-3.6:1, diganti varian *-text-emphasis Bootstrap. */
+.badge.text-success   { color: var(--bs-success-text-emphasis) !important; }
+.badge.text-warning   { color: var(--bs-warning-text-emphasis) !important; }
+.badge.text-danger    { color: var(--bs-danger-text-emphasis) !important; }
+.badge.text-primary   { color: var(--bs-primary-text-emphasis) !important; }
+.badge.text-info      { color: var(--bs-info-text-emphasis) !important; }
+.badge.text-secondary,
+.badge.text-muted     { color: var(--bs-secondary-text-emphasis) !important; }
 
 /* Ruang kosong di bawah grid menu setinggi floating checkout bar */
 .floating-checkout-spacer { height: 110px; }

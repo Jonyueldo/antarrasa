@@ -188,7 +188,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm rounded-4 mb-4" role="alert">
         <i class="bi bi-check-circle-fill fs-5 me-2 text-success"></i>
         <div><?= e($pesan_sukses) ?></div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>
 
@@ -196,7 +196,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center shadow-sm rounded-4 mb-4" role="alert">
         <i class="bi bi-exclamation-triangle-fill fs-5 me-2 text-danger"></i>
         <div><?= e($pesan_error) ?></div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>
 
@@ -430,23 +430,23 @@ require_once __DIR__ . '/includes/header.php';
                                         <?= field_csrf() ?>
                                         <input type="hidden" name="aksi_admin" value="reset_password_default">
                                         <input type="hidden" name="id_pengguna" value="<?= $id_u ?>">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning text-dark rounded-circle" title="Reset kata sandi ke password123">
-                                            <i class="bi bi-key"></i>
+                                        <button type="submit" class="btn btn-sm btn-outline-warning text-dark rounded-circle" title="Reset kata sandi ke password123" aria-label="Reset kata sandi @<?= e($u['username']) ?> ke password123">
+                                            <i class="bi bi-key" aria-hidden="true"></i>
                                         </button>
                                     </form>
 
                                     <!-- Tombol Hapus Pengguna -->
                                     <?php if ($is_akun_sendiri): ?>
-                                        <button class="btn btn-sm btn-secondary disabled opacity-50 rounded-circle" disabled title="Akun aktif Anda tidak dapat dihapus">
-                                            <i class="bi bi-trash"></i>
+                                        <button type="button" class="btn btn-sm btn-secondary disabled opacity-50 rounded-circle" disabled title="Akun aktif Anda tidak dapat dihapus" aria-label="Akun aktif Anda tidak dapat dihapus">
+                                            <i class="bi bi-trash" aria-hidden="true"></i>
                                         </button>
                                     <?php else: ?>
                                         <form method="POST" action="admin.php" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun @<?= addslashes(e($u['username'])) ?> (ID #<?= $id_u ?>) secara permanen?');">
                                             <?= field_csrf() ?>
                                             <input type="hidden" name="aksi_admin" value="hapus">
                                             <input type="hidden" name="id_pengguna" value="<?= $id_u ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle" title="Hapus Akun Pengguna">
-                                                <i class="bi bi-trash"></i>
+                                            <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle" title="Hapus Akun Pengguna" aria-label="Hapus akun @<?= e($u['username']) ?>">
+                                                <i class="bi bi-trash" aria-hidden="true"></i>
                                             </button>
                                         </form>
                                     <?php endif; ?>
@@ -547,7 +547,7 @@ require_once __DIR__ . '/includes/header.php';
                 <h5 class="modal-title fw-bold" id="modalTambahPenggunaLabel">
                     <i class="bi bi-person-plus-fill me-2"></i>Tambah Pengguna Baru (D4)
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <form method="POST" action="admin.php">
                 <?= field_csrf() ?>
@@ -609,7 +609,7 @@ require_once __DIR__ . '/includes/header.php';
                 <h5 class="modal-title fw-bold" id="modalEditPenggunaLabel">
                     <i class="bi bi-pencil-square me-2"></i>Edit Pengguna &amp; Peran
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Tutup"></button>
             </div>
             <form method="POST" action="admin.php">
                 <?= field_csrf() ?>

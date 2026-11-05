@@ -115,7 +115,7 @@ require_once __DIR__ . '/includes/header.php';
         <div>
             <strong>Pembayaran Berhasil Dikonfirmasi!</strong> Pesanan di DataStore D2 (<code>PESANAN</code>) telah diperbarui menjadi <strong>'Diproses'</strong>. Dapur restoran kini mulai memasak hidangan Anda.
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>
 
@@ -125,7 +125,7 @@ require_once __DIR__ . '/includes/header.php';
         <div>
             <strong>Status Pesanan Berubah:</strong> Status transaksi #<?= $id_pesanan ?> kini menjadi <strong>'<?= e((string)$_GET['update_sukses']) ?>'</strong>.
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>
 

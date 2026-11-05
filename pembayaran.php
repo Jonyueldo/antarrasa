@@ -135,7 +135,7 @@ require_once __DIR__ . '/includes/header.php';
         <div>
             <strong>Pesanan Berhasil Dicatat!</strong> Transaksi telah tersimpan di <code>PESANAN</code> (D2) &amp; <code>DETAIL_PESANAN</code> (D3) dengan nomor <strong>#<?= $id_pesanan ?></strong>. Silakan pilih metode pembayaran untuk melanjutkan pemrosesan.
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>
 

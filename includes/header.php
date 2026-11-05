@@ -145,8 +145,8 @@ $peran_aktif = $pengguna_aktif['peran'] ?? null;
                 <a href="index.php" class="btn btn-sm btn-outline-custom">
                     <i class="bi bi-eye me-1"></i> Lihat Menu
                 </a>
-                <a href="logout.php" class="btn btn-sm btn-outline-danger">
-                    <i class="bi bi-box-arrow-right"></i>
+                <a href="logout.php" class="btn btn-sm btn-outline-danger" title="Keluar" aria-label="Keluar dari akun">
+                    <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
                 </a>
             </div>
         </div>
@@ -199,7 +199,7 @@ $peran_aktif = $pengguna_aktif['peran'] ?? null;
                 <span class="brand-badge-customer d-none d-sm-inline">Food Delivery</span>
             </a>
 
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navCustomer" aria-controls="navCustomer" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navCustomer" aria-controls="navCustomer" aria-expanded="false" aria-label="Buka menu navigasi">
                 <span class="navbar-toggler-icon"></span>
             </button>
 

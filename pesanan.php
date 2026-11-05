@@ -160,7 +160,7 @@ require_once __DIR__ . '/includes/header.php';
                 <li><?= e($err) ?></li>
             <?php endforeach; ?>
         </ul>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>
 
@@ -241,9 +241,9 @@ require_once __DIR__ . '/includes/header.php';
                                                 <input type="hidden" name="id_menu" value="<?= $id ?>">
                                                 
                                                 <div class="qty-stepper">
-                                                    <button class="qty-stepper-btn" type="submit" name="jumlah" value="<?= max(0, $item['jumlah'] - 1) ?>">&minus;</button>
-                                                    <span class="qty-stepper-input d-flex align-items-center justify-content-center"><?= $item['jumlah'] ?></span>
-                                                    <button class="qty-stepper-btn" type="submit" name="jumlah" value="<?= min(50, $item['jumlah'] + 1) ?>">&#43;</button>
+                                                    <button class="qty-stepper-btn" type="submit" name="jumlah" value="<?= max(0, $item['jumlah'] - 1) ?>" aria-label="Kurangi jumlah <?= e($item['nama_menu']) ?>">&minus;</button>
+                                                    <span class="qty-stepper-input d-flex align-items-center justify-content-center" aria-label="Jumlah <?= e($item['nama_menu']) ?>"><?= $item['jumlah'] ?></span>
+                                                    <button class="qty-stepper-btn" type="submit" name="jumlah" value="<?= min(50, $item['jumlah'] + 1) ?>" aria-label="Tambah jumlah <?= e($item['nama_menu']) ?>">&#43;</button>
                                                 </div>
                                             </form>
                                         </td>
@@ -255,8 +255,8 @@ require_once __DIR__ . '/includes/header.php';
                                                 <?= field_csrf() ?>
                                                 <input type="hidden" name="aksi_keranjang" value="hapus">
                                                 <input type="hidden" name="id_menu" value="<?= $id ?>">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle" title="Hapus">
-                                                    <i class="bi bi-trash"></i>
+                                                <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle" title="Hapus" aria-label="Hapus <?= e($item['nama_menu']) ?> dari keranjang">
+                                                    <i class="bi bi-trash" aria-hidden="true"></i>
                                                 </button>
                                             </form>
                                         </td>

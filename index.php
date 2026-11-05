@@ -116,7 +116,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm rounded-4" role="alert">
         <i class="bi bi-check-circle-fill fs-4 me-2 text-success"></i>
         <div><strong>Pendaftaran Berhasil!</strong> Akun pelanggan baru Anda siap digunakan untuk memesan kuliner lezat di AntarRasa.</div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>
 
@@ -126,7 +126,7 @@ require_once __DIR__ . '/includes/header.php';
         <i class="bi bi-cart-check-fill fs-4 me-2 text-success"></i>
         <div class="flex-grow-1"><?= e($pesan_sukses) ?></div>
         <a href="pesanan.php" class="btn btn-sm btn-success rounded-pill px-3 py-1 ms-2 fw-semibold">Checkout</a>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>
 
@@ -135,7 +135,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="alert alert-warning alert-dismissible fade show d-flex align-items-center shadow-sm rounded-4" role="alert">
         <i class="bi bi-exclamation-triangle-fill fs-4 me-2 text-warning"></i>
         <div><?= e($pesan_peringatan) ?></div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
     </div>
 <?php endif; ?>
 
@@ -236,12 +236,12 @@ require_once __DIR__ . '/includes/header.php';
                                     <input type="hidden" name="id_menu" value="<?= $id_menu ?>">
                                     
                                     <div class="qty-stepper">
-                                        <button class="qty-stepper-btn" type="button" onclick="ubahJumlah(<?= $id_menu ?>, -1)">&minus;</button>
-                                        <input type="number" name="jumlah" id="jumlah_<?= $id_menu ?>" class="qty-stepper-input" value="1" min="1" max="50" required>
-                                        <button class="qty-stepper-btn" type="button" onclick="ubahJumlah(<?= $id_menu ?>, 1)">&#43;</button>
+                                        <button class="qty-stepper-btn" type="button" onclick="ubahJumlah(<?= $id_menu ?>, -1)" aria-label="Kurangi jumlah <?= e($menu['nama_menu']) ?>">&minus;</button>
+                                        <input type="number" name="jumlah" id="jumlah_<?= $id_menu ?>" class="qty-stepper-input" value="1" min="1" max="50" required aria-label="Jumlah <?= e($menu['nama_menu']) ?>">
+                                        <button class="qty-stepper-btn" type="button" onclick="ubahJumlah(<?= $id_menu ?>, 1)" aria-label="Tambah jumlah <?= e($menu['nama_menu']) ?>">&#43;</button>
                                     </div>
 
-                                    <button type="submit" class="btn btn-primary-custom p-2 rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 38px; height: 38px;" title="Tambah ke Keranjang">
+                                    <button type="submit" class="btn btn-primary-custom p-2 rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 38px; height: 38px;" title="Tambah ke Keranjang" aria-label="Tambah <?= e($menu['nama_menu']) ?> ke keranjang">
                                         <i class="bi bi-plus-lg text-white fs-6"></i>
                                     </button>
                                 </form>
