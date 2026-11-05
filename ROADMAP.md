@@ -154,7 +154,7 @@ proteksi CSRF, bug logika yang membuat tampilan salah secara faktual, dan file d
 - [x] **36. Paginasi** (L15) — paginasi prosedural dengan `LIMIT ? OFFSET ?` di `riwayat.php`, `admin.php`, dan `merchant.php`.
 - [x] **37. Klem jumlah di server** (U8) — batasi kuantitas 1 sampai 50 di dalam `tambah_ke_keranjang()`, tidak hanya lewat atribut `max` di HTML.
 - [x] **38. Feedback submit keranjang** (U7) — buat tombol `disabled` plus spinner saat submit memakai JavaScript vanilla kecil, tanpa framework.
-- [ ] **39. Rate limiting login** (S10) — pembatas percobaan berbasis session plus jeda, tanpa tabel baru.
+- [x] **39. Rate limiting login** (S10) — pembatas percobaan berbasis session plus jeda, tanpa tabel baru.
 - [ ] **40. Laporan transaksi admin dan ekspor CSV** — filter rentang tanggal dan status, lalu ekspor memakai `header('Content-Type: text/csv')`.
 - [ ] **41. Batalkan dan pesan ulang** — transisi `Menunggu` ke `Dibatalkan` oleh customer pemilik, serta tombol "Pesan Lagi" yang mengisi ulang keranjang dari `detail_pesanan`. Tambahkan status `Dibatalkan` **hanya** di `dapatkan_info_status()`.
 - [ ] **42. Menu terlaris dan pendapatan driver** — agregasi `SUM(jumlah) GROUP BY id_menu` untuk merchant, dan total pengantaran per `id_driver` untuk driver.

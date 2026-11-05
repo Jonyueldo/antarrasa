@@ -87,9 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password_input = (string) ($_POST['password'] ?? '');
     }
 
-    if ($username_input !== '' && $password_input !== '') {
+    $sisa_kunci = sisa_kunci_login();
+    if ($sisa_kunci > 0) {
+        // Terkunci sementara: password TIDAK diperiksa sama sekali selama masa kunci
+        $pesan_error = 'Terlalu banyak percobaan masuk yang gagal. Silakan coba lagi dalam '
+            . (int) ceil($sisa_kunci / 60) . ' menit.';
+    } elseif ($username_input !== '' && $password_input !== '') {
         $user_login = login_pengguna($conn, $username_input, $password_input);
         if ($user_login !== false) {
+            reset_gagal_login();
             // Arahkan ke halaman tujuan sesuai peran atau referensi
             if ($ref !== '') {
                 header("Location: {$ref}");
@@ -104,7 +110,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             };
             exit;
         } else {
+            catat_gagal_login();
             $pesan_error = 'Nama pengguna atau kata sandi tidak valid. Silakan periksa kembali.';
+            if (sisa_kunci_login() > 0) {
+                $pesan_error = 'Terlalu banyak percobaan masuk yang gagal. Login dikunci selama '
+                    . (int) ceil(DURASI_KUNCI_LOGIN / 60) . ' menit.';
+            }
         }
     } else {
         $pesan_error = 'Mohon masukkan nama pengguna dan kata sandi.';

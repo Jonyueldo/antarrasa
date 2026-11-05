@@ -156,6 +156,128 @@ function bersihkan_ref(string $ref): string
     return $nama_file;
 }
 
+// =====================================================================
+// RATE LIMITING LOGIN (tanpa tabel baru: session + berkas per-IP di folder temp)
+// =====================================================================
+
+/** Maksimal percobaan gagal dalam satu jendela waktu sebelum dikunci */
+const BATAS_GAGAL_LOGIN = 5;
+/** Jendela penghitungan percobaan gagal (detik) */
+const JENDELA_GAGAL_LOGIN = 900;
+/** Lama penguncian setelah melewati batas (detik) */
+const DURASI_KUNCI_LOGIN = 300;
+
+/**
+ * Lokasi berkas penghitung per-IP. Disimpan per IP (di-hash) agar penyerang yang
+ * membuang cookie sesi tetap terkena pembatasan.
+ *
+ * @return string
+ */
+function path_catatan_login_ip(): string
+{
+    $ip = (string) ($_SERVER['REMOTE_ADDR'] ?? 'cli');
+
+    // Folder session pasti bisa ditulis PHP (sesi berjalan di sana); format "N;/path" ditangani
+    $folder = (string) ini_get('session.save_path');
+    if (str_contains($folder, ';')) {
+        $folder = substr($folder, (int) strrpos($folder, ';') + 1);
+    }
+    if ($folder === '' || !is_dir($folder) || !is_writable($folder)) {
+        $folder = sys_get_temp_dir();
+    }
+
+    return rtrim($folder, '\\/') . DIRECTORY_SEPARATOR . 'antarrasa_login_' . hash('sha256', $ip) . '.json';
+}
+
+/**
+ * Membaca & (opsional) memperbarui catatan percobaan login secara atomik (flock).
+ *
+ * @param callable|null $ubah fn(array $data): array untuk memperbarui catatan; null = hanya baca
+ * @return array ['jumlah' => int, 'awal' => int, 'kunci_sampai' => int]
+ */
+function akses_catatan_login_ip(?callable $ubah = null): array
+{
+    $kosong = ['jumlah' => 0, 'awal' => time(), 'kunci_sampai' => 0];
+    $berkas = @fopen(path_catatan_login_ip(), 'c+');
+    if ($berkas === false) {
+        return $kosong;
+    }
+
+    flock($berkas, LOCK_EX);
+    $isi = stream_get_contents($berkas);
+    $data = is_string($isi) && $isi !== '' ? json_decode($isi, true) : null;
+    $data = is_array($data) ? array_merge($kosong, $data) : $kosong;
+
+    if ($ubah !== null) {
+        $data = $ubah($data);
+        ftruncate($berkas, 0);
+        rewind($berkas);
+        fwrite($berkas, (string) json_encode($data));
+        fflush($berkas);
+    }
+
+    flock($berkas, LOCK_UN);
+    fclose($berkas);
+    return $data;
+}
+
+/**
+ * Mengembalikan sisa detik penguncian login (0 = boleh mencoba login).
+ * Dicek dari session DAN catatan per-IP; diambil yang paling lama.
+ *
+ * @return int
+ */
+function sisa_kunci_login(): int
+{
+    $sekarang = time();
+    $kunci_sesi = (int) ($_SESSION['login_gagal']['kunci_sampai'] ?? 0);
+    $kunci_ip = (int) (akses_catatan_login_ip()['kunci_sampai'] ?? 0);
+    return max(0, max($kunci_sesi, $kunci_ip) - $sekarang);
+}
+
+/**
+ * Mencatat satu percobaan login gagal (session + per-IP) lalu memberi jeda
+ * yang makin panjang untuk memperlambat brute force.
+ *
+ * @return void
+ */
+function catat_gagal_login(): void
+{
+    $perbarui = static function (array $data): array {
+        $sekarang = time();
+        // Jendela kedaluwarsa: mulai hitungan baru
+        if ($sekarang - (int) $data['awal'] > JENDELA_GAGAL_LOGIN) {
+            $data = ['jumlah' => 0, 'awal' => $sekarang, 'kunci_sampai' => 0];
+        }
+        $data['jumlah'] = (int) $data['jumlah'] + 1;
+        if ($data['jumlah'] >= BATAS_GAGAL_LOGIN) {
+            $data['kunci_sampai'] = $sekarang + DURASI_KUNCI_LOGIN;
+            $data['jumlah'] = 0;
+            $data['awal'] = $sekarang;
+        }
+        return $data;
+    };
+
+    $sesi = is_array($_SESSION['login_gagal'] ?? null) ? $_SESSION['login_gagal'] : ['jumlah' => 0, 'awal' => time(), 'kunci_sampai' => 0];
+    $_SESSION['login_gagal'] = $perbarui($sesi);
+    $data_ip = akses_catatan_login_ip($perbarui);
+
+    // Jeda bertahap 0,5 s; 1 s; 1,5 s; maksimal 2 s
+    $tingkat = max((int) $_SESSION['login_gagal']['jumlah'], (int) $data_ip['jumlah'], 1);
+    usleep(min($tingkat, 4) * 500000);
+}
+
+/**
+ * Menghapus catatan percobaan gagal setelah login berhasil.
+ *
+ * @return void
+ */
+function reset_gagal_login(): void
+{
+    unset($_SESSION['login_gagal']);
+    akses_catatan_login_ip(static fn(array $data): array => ['jumlah' => 0, 'awal' => time(), 'kunci_sampai' => 0]);
+}
+
 /**
  * Memeriksa apakah fitur demo (quick login & panel simulasi status) boleh aktif.
  * Bernilai false jika konstanta MODE_DEMO tidak didefinisikan di config/database.php.
