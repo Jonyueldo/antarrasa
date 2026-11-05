@@ -1,4 +1,3 @@
-/*M!999999\- enable the sandbox mode */ 
 -- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for Win64 (AMD64)
 --
 -- Host: localhost    Database: antarrasa_db
@@ -36,6 +35,7 @@ CREATE TABLE `detail_pesanan` (
   `id_pesanan` int(11) NOT NULL,
   `id_menu` int(11) NOT NULL,
   `jumlah` int(11) NOT NULL,
+  `harga_satuan` decimal(12,2) NOT NULL DEFAULT 0.00,
   `subtotal` decimal(12,2) NOT NULL,
   PRIMARY KEY (`id_detail`),
   KEY `fk_detail_pesanan_pesanan` (`id_pesanan`),
@@ -53,12 +53,12 @@ CREATE TABLE `detail_pesanan` (
 LOCK TABLES `detail_pesanan` WRITE;
 /*!40000 ALTER TABLE `detail_pesanan` DISABLE KEYS */;
 INSERT INTO `detail_pesanan` VALUES
-(1,1,1,2,56000.00),
-(2,1,3,1,42000.00),
-(3,2,2,2,70000.00),
-(4,3,1,1,28000.00),
-(5,3,6,1,18000.00),
-(6,4,3,1,42000.00);
+(1,1,1,2,28000.00,56000.00),
+(2,1,3,1,42000.00,42000.00),
+(3,2,2,2,35000.00,70000.00),
+(4,3,1,1,28000.00,28000.00),
+(5,3,6,1,18000.00,18000.00),
+(6,4,3,1,42000.00,42000.00);
 /*!40000 ALTER TABLE `detail_pesanan` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -71,11 +71,17 @@ DROP TABLE IF EXISTS `menu`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `menu` (
   `id_menu` int(11) NOT NULL AUTO_INCREMENT,
+  `id_merchant` int(11) DEFAULT NULL,
   `nama_menu` varchar(100) NOT NULL,
   `harga` decimal(12,2) NOT NULL,
   `deskripsi` text DEFAULT NULL,
+  `kategori` varchar(30) DEFAULT NULL,
+  `gambar_url` varchar(255) DEFAULT NULL,
   `status_menu` varchar(20) NOT NULL DEFAULT 'Tersedia',
-  PRIMARY KEY (`id_menu`)
+  `is_aktif` tinyint(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id_menu`),
+  KEY `fk_menu_merchant` (`id_merchant`),
+  CONSTRAINT `fk_menu_merchant` FOREIGN KEY (`id_merchant`) REFERENCES `pengguna` (`id_pengguna`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -86,12 +92,12 @@ CREATE TABLE `menu` (
 LOCK TABLES `menu` WRITE;
 /*!40000 ALTER TABLE `menu` DISABLE KEYS */;
 INSERT INTO `menu` VALUES
-(1,'Nasi Goreng Spesial AntarRasa',28000.00,'Nasi goreng harum rempah istimewa dengan telur mata sapi, suwiran ayam gurih, acar segar, dan kerupuk renyah.','Tersedia'),
-(2,'Ayam Bakar Madu Taliwang',35000.00,'Ayam bakar bumbu taliwang khas Lombok dengan olesan madu alami, disajikan bersama sambal terasi pedas manis.','Tersedia'),
-(3,'Rendang Daging Sapi Minang',42000.00,'Daging sapi pilihan dimasak perlahan dengan santan kental dan racikan rempah Minang autentik hingga empuk meresap.','Tersedia'),
-(4,'Sate Ayam Madura (10 Tusuk)',30000.00,'Potongan daging ayam empuk dibakar sempurna, disiram saus kacang gurih pekat, kecap manis, dan taburan bawang goreng.','Tersedia'),
-(5,'Mie Goreng Seafood Nusantara',32000.00,'Mie telur kenyal ditumis dengan udang segar, cumi, bakso ikan, sayuran hijau renyah, dan bumbu oriental khas nusantara.','Tersedia'),
-(6,'Es Cendol Durian Segar',18000.00,'Minuman penutup manis legit dengan cendol pandan kenyal, santan kelapa murni, gula aren alami, dan topping durian asli.','Tersedia');
+(1,20,'Nasi Goreng Spesial AntarRasa',28000.00,'Nasi goreng harum rempah istimewa dengan telur mata sapi, suwiran ayam gurih, acar segar, dan kerupuk renyah.',NULL,NULL,'Tersedia',1),
+(2,20,'Ayam Bakar Madu Taliwang',35000.00,'Ayam bakar bumbu taliwang khas Lombok dengan olesan madu alami, disajikan bersama sambal terasi pedas manis.',NULL,NULL,'Tersedia',1),
+(3,20,'Rendang Daging Sapi Minang',42000.00,'Daging sapi pilihan dimasak perlahan dengan santan kental dan racikan rempah Minang autentik hingga empuk meresap.',NULL,NULL,'Tersedia',1),
+(4,20,'Sate Ayam Madura (10 Tusuk)',30000.00,'Potongan daging ayam empuk dibakar sempurna, disiram saus kacang gurih pekat, kecap manis, dan taburan bawang goreng.',NULL,NULL,'Tersedia',1),
+(5,20,'Mie Goreng Seafood Nusantara',32000.00,'Mie telur kenyal ditumis dengan udang segar, cumi, bakso ikan, sayuran hijau renyah, dan bumbu oriental khas nusantara.',NULL,NULL,'Tersedia',1),
+(6,20,'Es Cendol Durian Segar',18000.00,'Minuman penutup manis legit dengan cendol pandan kenyal, santan kelapa murni, gula aren alami, dan topping durian asli.',NULL,NULL,'Tersedia',1);
 /*!40000 ALTER TABLE `menu` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -120,8 +126,6 @@ CREATE TABLE `pengguna` (
 
 LOCK TABLES `pengguna` WRITE;
 /*!40000 ALTER TABLE `pengguna` DISABLE KEYS */;
--- Akun DEMO khusus repository. Seluruh kata sandi: password123
--- Hash dibuat ulang dengan password_hash() dan TIDAK berasal dari akun asli anggota tim.
 INSERT INTO `pengguna` VALUES
 (1,'customer','$2y$12$UWaKam70LO9FaEwIPFs5v.q5A.GJm3TVQruVcsqXy2nrqEE0w85YC','Pelanggan Demo','customer'),
 (3,'driver','$2y$12$kal.xSQ8JnHiyU83zpDRtexk3lWoVEEugmEZYw2fKdcVQ8dT1pxpS','Kurir Demo','driver'),
@@ -141,12 +145,21 @@ DROP TABLE IF EXISTS `pesanan`;
 CREATE TABLE `pesanan` (
   `id_pesanan` int(11) NOT NULL AUTO_INCREMENT,
   `id_pengguna` int(11) DEFAULT NULL,
+  `id_driver` int(11) DEFAULT NULL,
   `tanggal_pesanan` datetime NOT NULL DEFAULT current_timestamp(),
   `alamat_pengiriman` text NOT NULL,
   `total_harga` decimal(12,2) NOT NULL,
   `status_pesanan` varchar(30) NOT NULL DEFAULT 'Menunggu',
+  `metode_bayar` varchar(20) DEFAULT NULL,
+  `waktu_bayar` datetime DEFAULT NULL,
+  `bukti_bayar` varchar(255) DEFAULT NULL,
+  `waktu_diproses` datetime DEFAULT NULL,
+  `waktu_dikirim` datetime DEFAULT NULL,
+  `waktu_selesai` datetime DEFAULT NULL,
   PRIMARY KEY (`id_pesanan`),
   KEY `fk_pesanan_pengguna` (`id_pengguna`),
+  KEY `fk_pesanan_driver` (`id_driver`),
+  CONSTRAINT `fk_pesanan_driver` FOREIGN KEY (`id_driver`) REFERENCES `pengguna` (`id_pengguna`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_pesanan_pengguna` FOREIGN KEY (`id_pengguna`) REFERENCES `pengguna` (`id_pengguna`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -158,10 +171,10 @@ CREATE TABLE `pesanan` (
 LOCK TABLES `pesanan` WRITE;
 /*!40000 ALTER TABLE `pesanan` DISABLE KEYS */;
 INSERT INTO `pesanan` VALUES
-(1,1,'2026-10-24 10:15:00','Jl. Sudirman No. 45, RT 02 / RW 05, Kebayoran Baru, Jakarta Selatan',98000.00,'Selesai'),
-(2,1,'2026-10-25 12:30:00','Jl. Gatot Subroto No. 12, Kuningan Barat, Mampang Prapatan, Jakarta Selatan',70000.00,'Selesai'),
-(3,21,'2026-10-28 11:57:26','jl sawit no 67',46000.00,'Selesai'),
-(4,1,'2026-10-28 11:58:50','jln mbg no 128',42000.00,'Selesai');
+(1,1,NULL,'2026-10-24 10:15:00','Jl. Sudirman No. 45, RT 02 / RW 05, Kebayoran Baru, Jakarta Selatan',98000.00,'Selesai',NULL,NULL,NULL,NULL,NULL,NULL),
+(2,1,NULL,'2026-10-25 12:30:00','Jl. Gatot Subroto No. 12, Kuningan Barat, Mampang Prapatan, Jakarta Selatan',70000.00,'Selesai',NULL,NULL,NULL,NULL,NULL,NULL),
+(3,21,NULL,'2026-10-28 11:57:26','jl sawit no 67',46000.00,'Selesai',NULL,NULL,NULL,NULL,NULL,NULL),
+(4,1,NULL,'2026-10-28 11:58:50','jln mbg no 128',42000.00,'Selesai',NULL,NULL,NULL,NULL,NULL,NULL);
 /*!40000 ALTER TABLE `pesanan` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -174,4 +187,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-28 12:12:51
+-- Dump completed

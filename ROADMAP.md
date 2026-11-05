@@ -126,7 +126,7 @@ proteksi CSRF, bug logika yang membuat tampilan salah secara faktual, dan file d
 
 ## 4. PRIORITAS MENENGAH — Fitur Inti dan Konsistensi
 
-- [ ] **17. Migrasi skema kolom baru** (D5, D6, D7) — buat `database/migrations/002` sampai `004`:
+- [x] **17. Migrasi skema kolom baru** (D5, D6, D7) — buat `database/migrations/002` sampai `004`:
       `menu` ditambah `kategori VARCHAR(30)`, `gambar_url VARCHAR(255)`, `is_aktif TINYINT(1) DEFAULT 1`, `id_merchant INT NULL` (FK ke `pengguna`);
       `pesanan` ditambah `id_driver INT NULL` (FK), `metode_bayar VARCHAR(20) NULL`, `waktu_bayar DATETIME NULL`, `bukti_bayar VARCHAR(255) NULL`, serta `waktu_diproses`, `waktu_dikirim`, dan `waktu_selesai DATETIME NULL`;
       `detail_pesanan` ditambah `harga_satuan DECIMAL(12,2) NOT NULL DEFAULT 0`.
