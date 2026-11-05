@@ -39,6 +39,9 @@ $paginasi = hitung_paginasi(
 );
 $daftar_pesanan = ambil_semua_pesanan($conn, $paginasi['per_halaman'], null, $filter_pemilik, $paginasi['offset']);
 
+// Rincian item seluruh pesanan di halaman ini diambil dalam SATU query
+$detail_riwayat = ambil_detail_pesanan_massal($conn, array_column($daftar_pesanan, 'id_pesanan'));
+
 $judul_halaman = ($peran === 'customer') ? 'Pesanan Saya' : 'Riwayat Transaksi Pesanan';
 $tampilkan_stepper = false;
 
@@ -108,7 +111,8 @@ require_once __DIR__ . '/includes/header.php';
                         <?php if ($peran !== 'customer'): ?>
                             <th style="min-width: 150px;">Pemesan (D4)</th>
                         <?php endif; ?>
-                        <th style="min-width: 250px;">Alamat Pengantaran</th>
+                        <th style="min-width: 200px;">Rincian Item</th>
+                        <th style="min-width: 220px;">Alamat Pengantaran</th>
                         <th class="text-end" style="min-width: 130px;">Total Tagihan</th>
                         <th class="text-center" style="min-width: 150px;">Status Alur</th>
                         <th class="text-center pe-3" style="width: 140px;">Aksi</th>
@@ -136,6 +140,21 @@ require_once __DIR__ . '/includes/header.php';
                                     <?php endif; ?>
                                 </td>
                             <?php endif; ?>
+                            <td data-label="Rincian Item" class="small">
+                                <?php $item_pesanan = $detail_riwayat[$id] ?? []; ?>
+                                <?php if (empty($item_pesanan)): ?>
+                                    <span class="text-muted">-</span>
+                                <?php else: ?>
+                                    <ul class="list-unstyled mb-0">
+                                        <?php foreach ($item_pesanan as $it): ?>
+                                            <li class="text-dark">
+                                                <span class="fw-semibold"><?= (int) $it['jumlah'] ?>&times;</span> <?= e($it['nama_menu']) ?>
+                                                <span class="text-muted font-monospace" style="font-size: 0.72rem;">@ <?= format_rupiah((float) $it['harga']) ?></span>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
+                            </td>
                             <td data-label="Alamat Pengantaran" class="small text-secondary">
                                 <i class="bi bi-geo-alt-fill text-danger me-1"></i><?= e(mb_strimwidth((string)$order['alamat_pengiriman'], 0, 75, '...')) ?>
                             </td>
