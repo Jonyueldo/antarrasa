@@ -349,7 +349,8 @@ function simpan_pesanan($conn, string $alamat, array $detail_items, ?int $id_pen
     }
 
     // 3. Insert ke DataStore D3 (DETAIL_PESANAN) menggunakan Prepared Statement
-    $sql_detail = "INSERT INTO detail_pesanan (id_pesanan, id_menu, jumlah, subtotal) VALUES (?, ?, ?, ?)";
+    // harga_satuan dibekukan saat transaksi agar faktur lama tetap akurat walau harga menu berubah
+    $sql_detail = "INSERT INTO detail_pesanan (id_pesanan, id_menu, jumlah, harga_satuan, subtotal) VALUES (?, ?, ?, ?, ?)";
     $stmt_detail = mysqli_prepare($conn, $sql_detail);
 
     if (!$stmt_detail) {
@@ -360,9 +361,10 @@ function simpan_pesanan($conn, string $alamat, array $detail_items, ?int $id_pen
     foreach ($detail_items as $item) {
         $id_menu = (int) $item['id_menu'];
         $jumlah = (int) $item['jumlah'];
+        $harga_satuan = (float) $item['harga'];
         $subtotal = (float) $item['subtotal'];
 
-        mysqli_stmt_bind_param($stmt_detail, "iiid", $id_pesanan_baru, $id_menu, $jumlah, $subtotal);
+        mysqli_stmt_bind_param($stmt_detail, "iiidd", $id_pesanan_baru, $id_menu, $jumlah, $harga_satuan, $subtotal);
         $eksekusi_detail = mysqli_stmt_execute($stmt_detail);
 
         if (!$eksekusi_detail) {
@@ -479,6 +481,7 @@ function catat_pesanan_tamu(int $id_pesanan): void
 
 /**
  * Mengambil rincian item pesanan dari DataStore D3 (DETAIL_PESANAN) JOIN D1 (MENU)
+ * Kolom 'harga' berisi harga SATUAN SAAT TRANSAKSI (d.harga_satuan), bukan harga menu sekarang.
  *
  * @param mysqli $conn
  * @param int $id_pesanan
@@ -487,7 +490,8 @@ function catat_pesanan_tamu(int $id_pesanan): void
 function ambil_detail_pesanan($conn, int $id_pesanan): array
 {
     $items = [];
-    $sql = "SELECT d.id_detail, d.id_pesanan, d.id_menu, d.jumlah, d.subtotal, m.nama_menu, m.harga 
+    $sql = "SELECT d.id_detail, d.id_pesanan, d.id_menu, d.jumlah, d.subtotal, m.nama_menu,
+                   d.harga_satuan AS harga
             FROM detail_pesanan d
             JOIN menu m ON d.id_menu = m.id_menu
             WHERE d.id_pesanan = ?
