@@ -18,8 +18,10 @@ wajib_csrf();
 cek_akses(['merchant', 'admin']);
 
 $pengguna = ambil_pengguna_login();
-$pesan_sukses = '';
-$pesan_error = '';
+
+// Notifikasi hasil aksi dari redirect PRG (dicetak dengan e() di bawah)
+$pesan_sukses = isset($_GET['pesan_sukses']) ? (string) $_GET['pesan_sukses'] : '';
+$pesan_error = isset($_GET['pesan_error']) ? (string) $_GET['pesan_error'] : '';
 
 // 1. Tangani Aksi Dapur Terima & Masak Pesanan ('Menunggu' -> 'Diproses')
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['aksi'] === 'terima_pesanan') {
@@ -81,6 +83,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
             $pesan_error = "Menu tidak dapat dihapus karena sudah memiliki riwayat transaksi pesanan (Detail Pesanan D3).";
         }
     }
+}
+
+// Pola PRG (Post/Redirect/Get): setiap POST selalu diakhiri redirect agar
+// refresh browser tidak mengirim ulang form (menu ganda / update berulang)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $tujuan = 'merchant.php';
+    if ($pesan_error !== '') {
+        $tujuan .= '?pesan_error=' . urlencode($pesan_error);
+    } elseif ($pesan_sukses !== '') {
+        $tujuan .= '?pesan_sukses=' . urlencode($pesan_sukses);
+    }
+    header("Location: {$tujuan}");
+    exit;
 }
 
 // Ambil data menu dan pesanan dapur

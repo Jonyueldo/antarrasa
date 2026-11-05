@@ -19,8 +19,10 @@ wajib_csrf();
 cek_akses(['driver', 'admin']);
 
 $pengguna = ambil_pengguna_login();
-$pesan_sukses = '';
-$pesan_error = '';
+
+// Notifikasi hasil aksi dari redirect PRG (dicetak dengan e() di bawah)
+$pesan_sukses = isset($_GET['pesan_sukses']) ? (string) $_GET['pesan_sukses'] : '';
+$pesan_error = isset($_GET['pesan_error']) ? (string) $_GET['pesan_error'] : '';
 
 // Tangani Aksi Driver Mengubah Status Pesanan
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_driver'])) {
@@ -38,6 +40,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_driver'])) {
             $pesan_error = "Gagal memperbarui pesanan #{$id_pesanan}: alur status tidak valid (harus Diproses → Dikirim → Selesai) atau pesanan sudah diperbarui pihak lain.";
         }
     }
+}
+
+// Pola PRG (Post/Redirect/Get): setiap POST selalu diakhiri redirect agar
+// refresh browser tidak mengirim ulang update status
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $tujuan = 'driver.php';
+    if ($pesan_error !== '') {
+        $tujuan .= '?pesan_error=' . urlencode($pesan_error);
+    } elseif ($pesan_sukses !== '') {
+        $tujuan .= '?pesan_sukses=' . urlencode($pesan_sukses);
+    }
+    header("Location: {$tujuan}");
+    exit;
 }
 
 // Ambil pesanan berdasarkan kategori status
