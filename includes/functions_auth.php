@@ -185,10 +185,9 @@ function login_pengguna($conn, string $username, string $password): array|false
     mysqli_free_result($hasil);
     mysqli_stmt_close($stmt);
 
-    // Verifikasi hash password (atau kecocokan langsung jika diset manual)
-    $password_cocok = password_verify($password, (string) $user['password']) || ($password === $user['password']);
-
-    if (!$password_cocok) {
+    // Verifikasi hanya lewat hash; perbandingan plaintext dilarang karena meloloskan
+    // siapa pun yang mengetahui isi kolom password (misalnya dari dump database)
+    if (!password_verify($password, (string) $user['password'])) {
         return false;
     }
 

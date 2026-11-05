@@ -107,7 +107,7 @@ proteksi CSRF, bug logika yang membuat tampilan salah secara faktual, dan file d
 
 ## 3. PRIORITAS TINGGI — Perbaikan Kritis
 
-- [ ] **1. Hapus fallback password plaintext** (S1) — buang bagian `|| ($password === $user['password'])` di `includes/functions_auth.php:189`.
+- [x] **1. Hapus fallback password plaintext** (S1) — buang bagian `|| ($password === $user['password'])` di `includes/functions_auth.php:189`.
 - [ ] **2. Kunci `riwayat.php`** (S2) — tambah `cek_akses(['customer','merchant','driver','admin'])`, dan untuk peran `customer` **paksa** filter `id_pengguna` miliknya sendiri, jangan bergantung pada nilai `null`.
 - [ ] **3. Kunci transisi status di `status.php`** (S3) — pindahkan blok POST ke bawah `cek_akses()`, dan izinkan hanya saat `MODE_DEMO` aktif **dan** peran `admin`. Panel simulasi (`status.php:230-276`) dirender dengan syarat yang sama.
 - [ ] **4. Verifikasi pemilik pesanan** (S4) — buat helper `boleh_akses_pesanan(?array $pengguna, array $pesanan): bool` di `functions_order.php` (customer hanya boleh miliknya, merchant/driver/admin boleh), lalu pakai di `pembayaran.php:52` dan `status.php:41`.
