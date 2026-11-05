@@ -8,9 +8,11 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/functions_auth.php';
 require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
+wajib_csrf();
 
 $pesan_error = [];
 $alamat_pengiriman = '';
@@ -180,6 +182,7 @@ require_once __DIR__ . '/includes/header.php';
                         <i class="bi bi-card-checklist text-danger me-2"></i>Rincian Pesanan (<?= count($items_keranjang) ?> Menu)
                     </div>
                     <form method="POST" action="pesanan.php" onsubmit="return confirm('Apakah Anda yakin ingin mengosongkan seluruh keranjang?');">
+                        <?= field_csrf() ?>
                         <input type="hidden" name="aksi_keranjang" value="kosongkan">
                         <button type="submit" class="btn btn-sm btn-link text-danger text-decoration-none p-0 fw-semibold">
                             <i class="bi bi-trash3 me-1"></i> Kosongkan
@@ -224,6 +227,7 @@ require_once __DIR__ . '/includes/header.php';
                                         </td>
                                         <td class="text-center">
                                             <form method="POST" action="pesanan.php" class="d-inline-flex align-items-center justify-content-center">
+                                                <?= field_csrf() ?>
                                                 <input type="hidden" name="aksi_keranjang" value="update">
                                                 <input type="hidden" name="id_menu" value="<?= $id ?>">
                                                 
@@ -239,6 +243,7 @@ require_once __DIR__ . '/includes/header.php';
                                         </td>
                                         <td class="text-center pe-3">
                                             <form method="POST" action="pesanan.php">
+                                                <?= field_csrf() ?>
                                                 <input type="hidden" name="aksi_keranjang" value="hapus">
                                                 <input type="hidden" name="id_menu" value="<?= $id ?>">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle" title="Hapus">
@@ -280,6 +285,7 @@ require_once __DIR__ . '/includes/header.php';
                 </h5>
 
                 <form method="POST" action="pesanan.php" id="formCheckout">
+                    <?= field_csrf() ?>
                     <input type="hidden" name="aksi_pesanan" value="buat_pesanan">
 
                     <?php if (apakah_login()): ?>

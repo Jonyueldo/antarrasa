@@ -13,6 +13,7 @@ require_once __DIR__ . '/includes/functions_auth.php';
 require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
+wajib_csrf();
 
 $ref = isset($_GET['ref']) ? (string) $_GET['ref'] : (isset($_POST['ref']) ? (string) $_POST['ref'] : '');
 // Cegah open redirect: pastikan hanya path lokal
@@ -210,6 +211,7 @@ require_once __DIR__ . '/includes/header.php';
 
         <!-- Form Autentikasi Standard -->
         <form method="POST" action="login.php" class="mb-4">
+            <?= field_csrf() ?>
             <input type="hidden" name="ref" value="<?= e($ref) ?>">
 
             <div class="mb-3">
@@ -254,6 +256,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="col-6">
                     <?php if ($akun_peran['customer'] !== null): ?>
                         <form method="POST" action="login.php">
+                            <?= field_csrf() ?>
                             <input type="hidden" name="ref" value="<?= e($ref) ?>">
                             <input type="hidden" name="aksi" value="quick_demo">
                             <input type="hidden" name="akun_demo" value="customer">
@@ -284,6 +287,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="col-6">
                     <?php if ($akun_peran['merchant'] !== null): ?>
                         <form method="POST" action="login.php">
+                            <?= field_csrf() ?>
                             <input type="hidden" name="ref" value="<?= e($ref) ?>">
                             <input type="hidden" name="aksi" value="quick_demo">
                             <input type="hidden" name="akun_demo" value="merchant">
@@ -314,6 +318,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="col-6">
                     <?php if ($akun_peran['driver'] !== null): ?>
                         <form method="POST" action="login.php">
+                            <?= field_csrf() ?>
                             <input type="hidden" name="ref" value="<?= e($ref) ?>">
                             <input type="hidden" name="aksi" value="quick_demo">
                             <input type="hidden" name="akun_demo" value="driver">
@@ -344,6 +349,7 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="col-6">
                     <?php if ($akun_peran['admin'] !== null): ?>
                         <form method="POST" action="login.php">
+                            <?= field_csrf() ?>
                             <input type="hidden" name="ref" value="<?= e($ref) ?>">
                             <input type="hidden" name="aksi" value="quick_demo">
                             <input type="hidden" name="akun_demo" value="admin">

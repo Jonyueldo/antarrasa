@@ -7,9 +7,11 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/functions_auth.php';
 require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
+wajib_csrf();
 
 $pesan_sukses = '';
 $pesan_peringatan = '';
@@ -246,6 +248,7 @@ require_once __DIR__ . '/includes/header.php';
                             <!-- Form Kontrol Stepper & Tambah Keranjang -->
                             <?php if ($is_tersedia): ?>
                                 <form method="POST" action="index.php<?= $kata_kunci !== '' ? '?q=' . urlencode($kata_kunci) : '' ?>" class="d-flex align-items-center gap-2 m-0">
+                                    <?= field_csrf() ?>
                                     <input type="hidden" name="aksi" value="tambah_keranjang">
                                     <input type="hidden" name="id_menu" value="<?= $id_menu ?>">
                                     

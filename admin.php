@@ -13,6 +13,7 @@ require_once __DIR__ . '/includes/functions_admin.php';
 require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
+wajib_csrf();
 
 // Otorisasi: Khusus Administrator
 cek_akses(['admin']);
@@ -372,6 +373,7 @@ require_once __DIR__ . '/includes/header.php';
                             <td class="text-center">
                                 <!-- Form Ubah Peran Cepat -->
                                 <form method="POST" action="admin.php" class="d-inline-flex align-items-center gap-1">
+                                    <?= field_csrf() ?>
                                     <input type="hidden" name="aksi_admin" value="ganti_role_cepat">
                                     <input type="hidden" name="id_pengguna" value="<?= $id_u ?>">
                                     <select name="peran_baru" class="form-select form-select-sm rounded-pill" style="font-size: 0.78rem;" onchange="this.form.submit()">
@@ -400,6 +402,7 @@ require_once __DIR__ . '/includes/header.php';
 
                                     <!-- Tombol Reset Password Cepat -->
                                     <form method="POST" action="admin.php" class="d-inline" onsubmit="return confirm('Reset kata sandi pengguna @<?= addslashes(e($u['username'])) ?> menjadi \'password123\'?');">
+                                        <?= field_csrf() ?>
                                         <input type="hidden" name="aksi_admin" value="reset_password_default">
                                         <input type="hidden" name="id_pengguna" value="<?= $id_u ?>">
                                         <button type="submit" class="btn btn-sm btn-outline-warning text-dark rounded-circle" title="Reset kata sandi ke password123">
@@ -414,6 +417,7 @@ require_once __DIR__ . '/includes/header.php';
                                         </button>
                                     <?php else: ?>
                                         <form method="POST" action="admin.php" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun @<?= addslashes(e($u['username'])) ?> (ID #<?= $id_u ?>) secara permanen?');">
+                                            <?= field_csrf() ?>
                                             <input type="hidden" name="aksi_admin" value="hapus">
                                             <input type="hidden" name="id_pengguna" value="<?= $id_u ?>">
                                             <button type="submit" class="btn btn-sm btn-outline-danger rounded-circle" title="Hapus Akun Pengguna">
@@ -521,6 +525,7 @@ require_once __DIR__ . '/includes/header.php';
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST" action="admin.php">
+                <?= field_csrf() ?>
                 <input type="hidden" name="aksi_admin" value="tambah">
                 <div class="modal-body p-4">
                     <div class="mb-3">
@@ -582,6 +587,7 @@ require_once __DIR__ . '/includes/header.php';
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form method="POST" action="admin.php">
+                <?= field_csrf() ?>
                 <input type="hidden" name="aksi_admin" value="ubah">
                 <input type="hidden" name="id_pengguna" id="edit_id_pengguna" value="">
 

@@ -126,6 +126,71 @@ function peran_pengguna_saat_ini(): ?string
     return $pengguna['peran'] ?? null;
 }
 
+// =====================================================================
+// PROTEKSI CSRF (Cross-Site Request Forgery)
+// =====================================================================
+
+/**
+ * Mengambil token CSRF milik sesi aktif (dibuat sekali per sesi).
+ *
+ * @return string
+ */
+function token_csrf(): string
+{
+    if (empty($_SESSION['csrf_token']) || !is_string($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Membuat elemen input hidden berisi token CSRF untuk disisipkan di setiap form POST.
+ *
+ * @return string
+ */
+function field_csrf(): string
+{
+    return '<input type="hidden" name="csrf_token" value="'
+        . htmlspecialchars(token_csrf(), ENT_QUOTES, 'UTF-8') . '">';
+}
+
+/**
+ * Memvalidasi token CSRF yang dikirim lewat POST terhadap token di session.
+ *
+ * @return bool
+ */
+function cek_csrf(): bool
+{
+    $token_sesi = $_SESSION['csrf_token'] ?? '';
+    $token_kirim = $_POST['csrf_token'] ?? '';
+
+    return is_string($token_sesi) && is_string($token_kirim)
+        && $token_sesi !== '' && hash_equals($token_sesi, $token_kirim);
+}
+
+/**
+ * Gerbang CSRF: dipanggil di awal setiap halaman SEBELUM handler POST mana pun.
+ * Request POST tanpa token valid dihentikan dengan HTTP 403.
+ *
+ * @return void
+ */
+function wajib_csrf(): void
+{
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || cek_csrf()) {
+        return;
+    }
+
+    http_response_code(403);
+    $kembali = htmlspecialchars(basename((string) parse_url((string) ($_SERVER['PHP_SELF'] ?? 'index.php'), PHP_URL_PATH)), ENT_QUOTES, 'UTF-8');
+    echo '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><title>Permintaan Ditolak - AntarRasa</title></head>'
+        . '<body style="font-family:sans-serif;padding:2rem;">'
+        . '<h3>Permintaan Ditolak</h3>'
+        . '<p>Token keamanan formulir tidak valid atau sesi Anda telah berakhir. Silakan muat ulang halaman lalu kirim ulang formulir.</p>'
+        . '<p><a href="' . $kembali . '">Kembali ke halaman sebelumnya</a></p>'
+        . '</body></html>';
+    exit;
+}
+
 /**
  * Memeriksa apakah fitur demo (quick login & panel simulasi status) boleh aktif.
  * Bernilai false jika konstanta MODE_DEMO tidak didefinisikan di config/database.php.

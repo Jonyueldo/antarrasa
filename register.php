@@ -12,6 +12,7 @@ require_once __DIR__ . '/includes/functions_auth.php';
 require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
+wajib_csrf();
 
 // Jika sudah login, redirect ke halaman utama
 if (apakah_login()) {
@@ -120,6 +121,7 @@ require_once __DIR__ . '/includes/header.php';
         <?php endif; ?>
 
         <form method="POST" action="register.php">
+            <?= field_csrf() ?>
             <div class="mb-3">
                 <label for="nama_lengkap" class="form-label small fw-bold text-dark text-uppercase">Nama Lengkap</label>
                 <div class="input-group">

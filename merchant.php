@@ -12,6 +12,7 @@ require_once __DIR__ . '/includes/functions_auth.php';
 require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
+wajib_csrf();
 
 // Otorisasi: Hanya merchant dan admin yang dapat mengakses
 cek_akses(['merchant', 'admin']);
@@ -266,6 +267,7 @@ require_once __DIR__ . '/includes/header.php';
                         <!-- Tombol Aksi Dapur -->
                         <?php if ($st === 'Menunggu'): ?>
                             <form method="POST" action="merchant.php">
+                                <?= field_csrf() ?>
                                 <input type="hidden" name="aksi" value="terima_pesanan">
                                 <input type="hidden" name="id_pesanan" value="<?= $id_o ?>">
                                 <button type="submit" class="btn btn-warning w-100 fw-bold py-2 rounded-3 text-dark shadow-sm d-flex align-items-center justify-content-center gap-2">
@@ -298,6 +300,7 @@ require_once __DIR__ . '/includes/header.php';
             </h5>
 
             <form method="POST" action="merchant.php">
+                <?= field_csrf() ?>
                 <input type="hidden" name="aksi" value="tambah_menu">
 
                 <div class="row g-2 mb-2">
@@ -391,6 +394,7 @@ require_once __DIR__ . '/includes/header.php';
                                         <div class="d-inline-flex gap-1">
                                             <!-- Tombol 1-Click Toggle Status -->
                                             <form method="POST" action="merchant.php" class="d-inline">
+                                                <?= field_csrf() ?>
                                                 <input type="hidden" name="aksi" value="ubah_status_menu">
                                                 <input type="hidden" name="id_menu" value="<?= $id_m ?>">
                                                 <input type="hidden" name="status_tujuan" value="<?= $is_tersedia ? 'Habis' : 'Tersedia' ?>">
@@ -401,6 +405,7 @@ require_once __DIR__ . '/includes/header.php';
 
                                             <!-- Tombol Hapus Menu -->
                                             <form method="POST" action="merchant.php" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus menu \'<?= addslashes(e($m['nama_menu'])) ?>\'?');">
+                                                <?= field_csrf() ?>
                                                 <input type="hidden" name="aksi" value="hapus_menu">
                                                 <input type="hidden" name="id_menu" value="<?= $id_m ?>">
                                                 <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle" title="Hapus">

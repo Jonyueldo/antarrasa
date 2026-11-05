@@ -13,6 +13,7 @@ require_once __DIR__ . '/includes/functions_auth.php';
 require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
+wajib_csrf();
 
 $id_pesanan = isset($_GET['id']) ? (int) $_GET['id'] : (isset($_POST['id_pesanan']) ? (int) $_POST['id_pesanan'] : 0);
 $pesan_error = '';
@@ -256,6 +257,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <div class="d-flex flex-wrap gap-2">
                 <form method="POST" action="status.php" class="d-inline">
+                    <?= field_csrf() ?>
                     <input type="hidden" name="aksi_status" value="1">
                     <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
                     <input type="hidden" name="status_tujuan" value="Menunggu">
@@ -265,6 +267,7 @@ require_once __DIR__ . '/includes/header.php';
                 </form>
 
                 <form method="POST" action="status.php" class="d-inline">
+                    <?= field_csrf() ?>
                     <input type="hidden" name="aksi_status" value="1">
                     <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
                     <input type="hidden" name="status_tujuan" value="Diproses">
@@ -274,6 +277,7 @@ require_once __DIR__ . '/includes/header.php';
                 </form>
 
                 <form method="POST" action="status.php" class="d-inline">
+                    <?= field_csrf() ?>
                     <input type="hidden" name="aksi_status" value="1">
                     <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
                     <input type="hidden" name="status_tujuan" value="Dikirim">
@@ -283,6 +287,7 @@ require_once __DIR__ . '/includes/header.php';
                 </form>
 
                 <form method="POST" action="status.php" class="d-inline">
+                    <?= field_csrf() ?>
                     <input type="hidden" name="aksi_status" value="1">
                     <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
                     <input type="hidden" name="status_tujuan" value="Selesai">

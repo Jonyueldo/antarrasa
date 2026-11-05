@@ -13,6 +13,7 @@ require_once __DIR__ . '/includes/functions_auth.php';
 require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
+wajib_csrf();
 
 // Otorisasi: Hanya driver dan admin yang dapat mengakses
 cek_akses(['driver', 'admin']);
@@ -183,6 +184,7 @@ require_once __DIR__ . '/includes/header.php';
 
                         <!-- Tombol Selesaikan Pengantaran -->
                         <form method="POST" action="driver.php">
+                            <?= field_csrf() ?>
                             <input type="hidden" name="aksi_driver" value="1">
                             <input type="hidden" name="id_pesanan" value="<?= $id_o ?>">
                             <input type="hidden" name="status_tujuan" value="Selesai">
@@ -268,6 +270,7 @@ require_once __DIR__ . '/includes/header.php';
 
                         <!-- Tombol Ambil & Antar -->
                         <form method="POST" action="driver.php">
+                            <?= field_csrf() ?>
                             <input type="hidden" name="aksi_driver" value="1">
                             <input type="hidden" name="id_pesanan" value="<?= $id_o ?>">
                             <input type="hidden" name="status_tujuan" value="Dikirim">

@@ -12,6 +12,7 @@ require_once __DIR__ . '/includes/functions_auth.php';
 require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
+wajib_csrf();
 
 $id_pesanan = isset($_GET['id']) ? (int) $_GET['id'] : (isset($_POST['id_pesanan']) ? (int) $_POST['id_pesanan'] : 0);
 $pesan_error = '';
@@ -235,6 +236,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
 
                 <form method="POST" action="pembayaran.php">
+                    <?= field_csrf() ?>
                     <input type="hidden" name="aksi" value="bayar_pesanan">
                     <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
 
