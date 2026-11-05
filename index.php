@@ -26,9 +26,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
         if ($info_menu !== null) {
             if (strcasecmp((string) $info_menu['status_menu'], 'Tersedia') === 0) {
                 tambah_ke_keranjang($id_menu_pilihan, $jumlah_pilihan);
-                $pesan_sukses = "Berhasil menambahkan " . $jumlah_pilihan . "x '" . e($info_menu['nama_menu']) . "' ke keranjang belanja!";
+                // Pesan disimpan mentah; escaping dilakukan sekali saat dicetak
+                $pesan_sukses = "Berhasil menambahkan " . $jumlah_pilihan . "x '" . (string) $info_menu['nama_menu'] . "' ke keranjang belanja!";
             } else {
-                $pesan_peringatan = "Maaf, menu '" . e($info_menu['nama_menu']) . "' saat ini sedang habis.";
+                $pesan_peringatan = "Maaf, menu '" . (string) $info_menu['nama_menu'] . "' saat ini sedang habis.";
             }
         } else {
             $pesan_peringatan = "Menu tidak ditemukan di database.";
@@ -127,7 +128,7 @@ require_once __DIR__ . '/includes/header.php';
 <?php if ($pesan_sukses !== ''): ?>
     <div class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm rounded-4" role="alert">
         <i class="bi bi-cart-check-fill fs-4 me-2 text-success"></i>
-        <div class="flex-grow-1"><?= $pesan_sukses ?></div>
+        <div class="flex-grow-1"><?= e($pesan_sukses) ?></div>
         <a href="pesanan.php" class="btn btn-sm btn-success rounded-pill px-3 py-1 ms-2 fw-semibold">Checkout</a>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
@@ -137,7 +138,7 @@ require_once __DIR__ . '/includes/header.php';
 <?php if ($pesan_peringatan !== ''): ?>
     <div class="alert alert-warning alert-dismissible fade show d-flex align-items-center shadow-sm rounded-4" role="alert">
         <i class="bi bi-exclamation-triangle-fill fs-4 me-2 text-warning"></i>
-        <div><?= $pesan_peringatan ?></div>
+        <div><?= e($pesan_peringatan) ?></div>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 <?php endif; ?>
