@@ -36,16 +36,18 @@ const KATEGORI_MENU = [
  *
  * @param mysqli $conn Objek koneksi MySQLi prosedural
  * @param string|null $kategori Kunci KATEGORI_MENU; null / tidak dikenal = semua kategori
+ * @param bool $hanya_aktif true = sembunyikan menu yang sudah dihapus (soft delete, is_aktif = 0)
  * @return array Array berisi asosiatif data menu
  */
-function ambil_semua_menu($conn, ?string $kategori = null): array
+function ambil_semua_menu($conn, ?string $kategori = null, bool $hanya_aktif = true): array
 {
     $daftar_menu = [];
     $kolom = "id_menu, id_merchant, nama_menu, harga, deskripsi, kategori, gambar_url, status_menu, is_aktif";
+    $syarat_aktif = $hanya_aktif ? "is_aktif = 1" : "1 = 1";
 
     if ($kategori !== null && isset(KATEGORI_MENU[$kategori])) {
         // Filter kategori lewat prepared statement berparameter
-        $stmt = mysqli_prepare($conn, "SELECT $kolom FROM menu WHERE kategori = ? ORDER BY id_menu ASC");
+        $stmt = mysqli_prepare($conn, "SELECT $kolom FROM menu WHERE $syarat_aktif AND kategori = ? ORDER BY id_menu ASC");
         if (!$stmt) {
             return $daftar_menu;
         }
@@ -60,7 +62,7 @@ function ambil_semua_menu($conn, ?string $kategori = null): array
         return $daftar_menu;
     }
 
-    $query = mysqli_query($conn, "SELECT $kolom FROM menu ORDER BY id_menu ASC");
+    $query = mysqli_query($conn, "SELECT $kolom FROM menu WHERE $syarat_aktif ORDER BY id_menu ASC");
     if ($query !== false) {
         $daftar_menu = mysqli_fetch_all($query, MYSQLI_ASSOC);
         mysqli_free_result($query);
@@ -192,26 +194,113 @@ function ubah_status_menu($conn, int $id_menu, string $status_baru): bool
 }
 
 /**
- * Menghapus menu dari DataStore D1 (MENU) - Fitur Merchant
+ * Memeriksa apakah pengguna boleh mengelola (ubah/hapus/toggle) sebuah menu.
+ * Admin boleh semua; merchant hanya menu miliknya atau menu yang belum punya pemilik.
+ *
+ * @param array|null $pengguna
+ * @param array $menu Data dari ambil_menu_by_id()
+ * @return bool
+ */
+function boleh_kelola_menu(?array $pengguna, array $menu): bool
+{
+    $peran = (string) ($pengguna['peran'] ?? '');
+    if ($peran === 'admin') {
+        return true;
+    }
+    if ($peran !== 'merchant') {
+        return false;
+    }
+    $id_pemilik = (int) ($menu['id_merchant'] ?? 0);
+    return $id_pemilik === 0 || $id_pemilik === (int) ($pengguna['id_pengguna'] ?? -1);
+}
+
+/**
+ * Mengubah data hidangan (nama, harga, deskripsi, kategori, status) - Fitur Merchant
  *
  * @param mysqli $conn
  * @param int $id_menu
- * @return bool
+ * @param string $nama_menu
+ * @param float $harga Wajib > 0
+ * @param string $deskripsi
+ * @param string $kategori Kunci KATEGORI_MENU
+ * @param string $status_menu 'Tersedia' / 'Habis'
+ * @return bool false jika menu tidak ada / sudah dihapus / data tidak valid
  */
-function hapus_menu($conn, int $id_menu): bool
+function ubah_menu_makanan($conn, int $id_menu, string $nama_menu, float $harga, string $deskripsi, string $kategori, string $status_menu): bool
 {
-    $sql = "DELETE FROM menu WHERE id_menu = ?";
+    $nama_bersih = trim($nama_menu);
+    if ($nama_bersih === '' || mb_strlen($nama_bersih) > 100 || $harga <= 0.0
+        || !isset(KATEGORI_MENU[$kategori]) || !in_array($status_menu, ['Tersedia', 'Habis'], true)) {
+        return false;
+    }
+
+    $menu = ambil_menu_by_id($conn, $id_menu);
+    if ($menu === null || (int) $menu['is_aktif'] !== 1) {
+        return false;
+    }
+
+    $sql = "UPDATE menu SET nama_menu = ?, harga = ?, deskripsi = ?, kategori = ?, status_menu = ? WHERE id_menu = ? AND is_aktif = 1";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         return false;
     }
 
-    mysqli_stmt_bind_param($stmt, "i", $id_menu);
+    mysqli_stmt_bind_param($stmt, "sdsssi", $nama_bersih, $harga, $deskripsi, $kategori, $status_menu, $id_menu);
     $sukses = mysqli_stmt_execute($stmt);
-    $affected = mysqli_stmt_affected_rows($stmt);
     mysqli_stmt_close($stmt);
 
-    return $sukses && ($affected > 0);
+    // affected_rows = 0 wajar bila data yang dikirim sama persis; eksistensi sudah dicek di atas
+    return $sukses;
+}
+
+/**
+ * Mengaktifkan / menonaktifkan menu dari katalog (soft delete) - Fitur Merchant
+ *
+ * @param mysqli $conn
+ * @param int $id_menu
+ * @param bool $aktif
+ * @return bool false jika menu tidak ditemukan
+ */
+function set_aktif_menu($conn, int $id_menu, bool $aktif): bool
+{
+    $menu = ambil_menu_by_id($conn, $id_menu);
+    if ($menu === null) {
+        return false;
+    }
+
+    $nilai = $aktif ? 1 : 0;
+    if ((int) $menu['is_aktif'] === $nilai) {
+        return true;
+    }
+
+    $stmt = mysqli_prepare($conn, "UPDATE menu SET is_aktif = ? WHERE id_menu = ?");
+    if (!$stmt) {
+        return false;
+    }
+
+    mysqli_stmt_bind_param($stmt, "ii", $nilai, $id_menu);
+    $sukses = mysqli_stmt_execute($stmt) && mysqli_stmt_affected_rows($stmt) > 0;
+    mysqli_stmt_close($stmt);
+
+    return $sukses;
+}
+
+/**
+ * Menghapus menu dari katalog secara SOFT DELETE (is_aktif = 0) - Fitur Merchant.
+ * Baris tetap ada sehingga FK detail_pesanan aman dan faktur lama tetap menampilkan menu ini.
+ *
+ * @param mysqli $conn
+ * @param int $id_menu
+ * @return bool false hanya jika menu tidak ditemukan atau sudah dihapus sebelumnya
+ */
+function hapus_menu($conn, int $id_menu): bool
+{
+    $menu = ambil_menu_by_id($conn, $id_menu);
+    if ($menu === null || (int) $menu['is_aktif'] !== 1) {
+        return false;
+    }
+
+    return set_aktif_menu($conn, $id_menu, false);
 }
 
 /**
@@ -946,7 +1035,7 @@ function hitung_statistik_admin($conn): array
     }
 
     // Total Menu
-    $q_menu = mysqli_query($conn, "SELECT COUNT(*) as jml FROM menu");
+    $q_menu = mysqli_query($conn, "SELECT COUNT(*) as jml FROM menu WHERE is_aktif = 1");
     if ($q_menu !== false) {
         $row = mysqli_fetch_assoc($q_menu);
         $stats['total_menu'] = (int) ($row['jml'] ?? 0);

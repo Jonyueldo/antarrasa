@@ -23,7 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
 
     if ($id_menu_pilihan > 0 && $jumlah_pilihan > 0) {
         $info_menu = ambil_menu_by_id($conn, $id_menu_pilihan);
-        if ($info_menu !== null) {
+        // Menu yang sudah dihapus (soft delete) diperlakukan seperti tidak ada
+        if ($info_menu !== null && (int) $info_menu['is_aktif'] === 1) {
             if (strcasecmp((string) $info_menu['status_menu'], 'Tersedia') === 0) {
                 tambah_ke_keranjang($id_menu_pilihan, $jumlah_pilihan);
                 // Pesan disimpan mentah; escaping dilakukan sekali saat dicetak

@@ -65,7 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
     $id_menu = (int) ($_POST['id_menu'] ?? 0);
     $status_tujuan = (string) ($_POST['status_tujuan'] ?? 'Tersedia');
 
-    if ($id_menu > 0) {
+    $menu_target = $id_menu > 0 ? ambil_menu_by_id($conn, $id_menu) : null;
+    if ($menu_target !== null && !boleh_kelola_menu($pengguna, $menu_target)) {
+        $pesan_error = 'Anda hanya dapat mengelola menu milik restoran Anda sendiri.';
+    } elseif ($id_menu > 0) {
         $sukses = ubah_status_menu($conn, $id_menu, $status_tujuan);
         if ($sukses) {
             $pesan_sukses = "Ketersediaan hidangan berhasil diubah menjadi '{$status_tujuan}'.";
@@ -75,16 +78,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
     }
 }
 
-// 4. Tangani Aksi Hapus Menu
+// 4. Tangani Aksi Hapus Menu (soft delete: hilang dari katalog, faktur lama tetap utuh)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['aksi'] === 'hapus_menu') {
     $id_menu = (int) ($_POST['id_menu'] ?? 0);
-    if ($id_menu > 0) {
-        $sukses = hapus_menu($conn, $id_menu);
-        if ($sukses) {
-            $pesan_sukses = "Menu berhasil dihapus dari katalog DataStore D1.";
-        } else {
-            $pesan_error = "Menu tidak dapat dihapus karena sudah memiliki riwayat transaksi pesanan (Detail Pesanan D3).";
-        }
+    $menu_target = $id_menu > 0 ? ambil_menu_by_id($conn, $id_menu) : null;
+
+    if ($menu_target === null || (int) $menu_target['is_aktif'] !== 1) {
+        $pesan_error = "Menu tidak ditemukan atau sudah dihapus sebelumnya.";
+    } elseif (!boleh_kelola_menu($pengguna, $menu_target)) {
+        $pesan_error = 'Anda hanya dapat mengelola menu milik restoran Anda sendiri.';
+    } elseif (hapus_menu($conn, $id_menu)) {
+        $pesan_sukses = "Menu '" . (string) $menu_target['nama_menu'] . "' dihapus dari katalog. Riwayat faktur lama tetap tersimpan.";
+    } else {
+        $pesan_error = "Gagal menghapus menu dari katalog. Silakan coba lagi.";
+    }
+}
+
+// 5. Tangani Aksi Edit Menu
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['aksi'] === 'ubah_menu') {
+    $id_menu     = (int) ($_POST['id_menu'] ?? 0);
+    $nama_menu   = (string) ($_POST['nama_menu'] ?? '');
+    $harga       = (float) ($_POST['harga'] ?? 0.0);
+    $deskripsi   = (string) ($_POST['deskripsi'] ?? '');
+    $kategori    = (string) ($_POST['kategori'] ?? '');
+    $status_menu = (string) ($_POST['status_menu'] ?? 'Tersedia');
+    $menu_target = $id_menu > 0 ? ambil_menu_by_id($conn, $id_menu) : null;
+
+    if ($menu_target === null || (int) $menu_target['is_aktif'] !== 1) {
+        $pesan_error = 'Menu yang akan diubah tidak ditemukan.';
+    } elseif (!boleh_kelola_menu($pengguna, $menu_target)) {
+        $pesan_error = 'Anda hanya dapat mengelola menu milik restoran Anda sendiri.';
+    } elseif (trim($nama_menu) === '' || $harga <= 0.0 || !isset(KATEGORI_MENU[$kategori])) {
+        $pesan_error = 'Nama hidangan, harga (> 0), dan kategori wajib diisi dengan benar.';
+    } elseif (ubah_menu_makanan($conn, $id_menu, $nama_menu, $harga, $deskripsi, $kategori, $status_menu)) {
+        $pesan_sukses = "Perubahan menu '" . trim($nama_menu) . "' berhasil disimpan.";
+    } else {
+        $pesan_error = 'Gagal menyimpan perubahan menu.';
     }
 }
 
@@ -433,16 +462,68 @@ require_once __DIR__ . '/includes/header.php';
                                                 </button>
                                             </form>
 
-                                            <!-- Tombol Hapus Menu -->
-                                            <form method="POST" action="merchant.php" class="d-inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus menu \'<?= addslashes(e($m['nama_menu'])) ?>\'?');">
+                                            <!-- Tombol Edit Menu (membuka form di baris bawah) -->
+                                            <button type="button" class="btn btn-sm btn-outline-primary border-0 rounded-circle"
+                                                    data-bs-toggle="collapse" data-bs-target="#edit-menu-<?= $id_m ?>"
+                                                    aria-expanded="false" aria-controls="edit-menu-<?= $id_m ?>"
+                                                    title="Edit" aria-label="Edit menu <?= e($m['nama_menu']) ?>">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+
+                                            <!-- Tombol Hapus Menu (soft delete). Teks konfirmasi di-encode JSON agar
+                                                 nama menu berisi tanda kutip tidak bisa menyuntikkan JavaScript -->
+                                            <?php $teks_konfirmasi = json_encode("Hapus menu '" . (string) $m['nama_menu'] . "' dari katalog? Faktur lama tetap tersimpan.", JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE); ?>
+                                            <form method="POST" action="merchant.php" class="d-inline" onsubmit="return confirm(<?= e($teks_konfirmasi) ?>);">
                                                 <?= field_csrf() ?>
                                                 <input type="hidden" name="aksi" value="hapus_menu">
                                                 <input type="hidden" name="id_menu" value="<?= $id_m ?>">
-                                                <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle" title="Hapus">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger border-0 rounded-circle" title="Hapus" aria-label="Hapus menu <?= e($m['nama_menu']) ?>">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>
                                         </div>
+                                    </td>
+                                </tr>
+                                <!-- Form Edit Menu (tersembunyi, dibuka lewat tombol Edit) -->
+                                <tr class="collapse" id="edit-menu-<?= $id_m ?>">
+                                    <td colspan="4" class="bg-light px-3 py-3">
+                                        <form method="POST" action="merchant.php" class="row g-2 align-items-end">
+                                            <?= field_csrf() ?>
+                                            <input type="hidden" name="aksi" value="ubah_menu">
+                                            <input type="hidden" name="id_menu" value="<?= $id_m ?>">
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-semibold text-muted mb-1" for="nama-<?= $id_m ?>">Nama Hidangan</label>
+                                                <input type="text" class="form-control form-control-sm" id="nama-<?= $id_m ?>" name="nama_menu" value="<?= e($m['nama_menu']) ?>" maxlength="100" required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small fw-semibold text-muted mb-1" for="harga-<?= $id_m ?>">Harga (Rp)</label>
+                                                <input type="number" step="500" min="500" class="form-control form-control-sm font-monospace" id="harga-<?= $id_m ?>" name="harga" value="<?= e((string) (int) $m['harga']) ?>" required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small fw-semibold text-muted mb-1" for="kat-<?= $id_m ?>">Kategori</label>
+                                                <select class="form-select form-select-sm" id="kat-<?= $id_m ?>" name="kategori" required>
+                                                    <?php foreach (KATEGORI_MENU as $kunci_kat => $info_kat): ?>
+                                                        <option value="<?= e($kunci_kat) ?>" <?= ($m['kategori'] ?? 'lainnya') === $kunci_kat ? 'selected' : '' ?>><?= e($info_kat['label']) ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label small fw-semibold text-muted mb-1" for="desk-<?= $id_m ?>">Deskripsi</label>
+                                                <input type="text" class="form-control form-control-sm" id="desk-<?= $id_m ?>" name="deskripsi" value="<?= e($m['deskripsi'] ?? '') ?>">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label small fw-semibold text-muted mb-1" for="stat-<?= $id_m ?>">Ketersediaan</label>
+                                                <select class="form-select form-select-sm" id="stat-<?= $id_m ?>" name="status_menu">
+                                                    <option value="Tersedia" <?= $is_tersedia ? 'selected' : '' ?>>Tersedia</option>
+                                                    <option value="Habis" <?= !$is_tersedia ? 'selected' : '' ?>>Habis</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <button type="submit" class="btn btn-sm btn-primary-custom w-100 fw-bold text-white">
+                                                    <i class="bi bi-save2 me-1"></i> Simpan
+                                                </button>
+                                            </div>
+                                        </form>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
