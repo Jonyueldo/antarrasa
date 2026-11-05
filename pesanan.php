@@ -63,6 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_pesanan']) && $_
             // Bersihkan keranjang belanja setelah berhasil merekam transaksi
             kosongkan_keranjang();
 
+            // Pesanan tamu hanya boleh dibuka oleh sesi pembuatnya
+            if ($id_pengguna_login === null) {
+                catat_pesanan_tamu($id_pesanan_baru);
+            }
+
             // Alihkan ke Halaman Pembayaran (Proses 2.0)
             header("Location: pembayaran.php?id=" . $id_pesanan_baru . "&status_order=berhasil");
             exit;

@@ -52,6 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_status'])) {
 // 2. Ambil Informasi Pesanan dari D2 (PESANAN) dan D3 (DETAIL_PESANAN)
 $pesanan = ambil_pesanan_by_id($conn, $id_pesanan);
 
+// Pesanan milik orang lain diperlakukan seolah tidak ada agar ID tidak bisa ditebak
+if ($pesanan !== null && !boleh_akses_pesanan(ambil_pengguna_login(), $pesanan)) {
+    $pesanan = null;
+}
+
 if ($pesanan === null) {
     $judul_halaman = 'Pesanan Tidak Ditemukan';
     require_once __DIR__ . '/includes/header.php';

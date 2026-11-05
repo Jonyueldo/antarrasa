@@ -410,6 +410,57 @@ function ambil_pesanan_by_id($conn, int $id_pesanan): ?array
 }
 
 /**
+ * Memeriksa apakah pengguna boleh melihat / membayar sebuah pesanan.
+ * - merchant, driver, admin : boleh semua pesanan
+ * - customer               : hanya pesanan miliknya sendiri
+ * - tamu (belum login)     : hanya pesanan tamu yang dibuat di sesinya sendiri
+ *
+ * @param array|null $pengguna Data dari ambil_pengguna_login()
+ * @param array $pesanan Data dari ambil_pesanan_by_id()
+ * @return bool
+ */
+function boleh_akses_pesanan(?array $pengguna, array $pesanan): bool
+{
+    $id_pemilik = isset($pesanan['id_pengguna']) ? (int) $pesanan['id_pengguna'] : 0;
+
+    if ($pengguna === null) {
+        $pesanan_tamu = $_SESSION['pesanan_tamu'] ?? [];
+        return $id_pemilik === 0
+            && is_array($pesanan_tamu)
+            && in_array((int) $pesanan['id_pesanan'], $pesanan_tamu, true);
+    }
+
+    $peran = (string) ($pengguna['peran'] ?? '');
+    if (in_array($peran, ['merchant', 'driver', 'admin'], true)) {
+        return true;
+    }
+
+    if ($peran === 'customer') {
+        $id_login = (int) ($pengguna['id_pengguna'] ?? 0);
+        return $id_login > 0 && $id_login === $id_pemilik;
+    }
+
+    return false;
+}
+
+/**
+ * Mencatat id pesanan tamu ke session agar hanya pembuatnya yang bisa membuka.
+ *
+ * @param int $id_pesanan
+ * @return void
+ */
+function catat_pesanan_tamu(int $id_pesanan): void
+{
+    $daftar = $_SESSION['pesanan_tamu'] ?? [];
+    if (!is_array($daftar)) {
+        $daftar = [];
+    }
+    $daftar[] = $id_pesanan;
+    // Simpan maksimal 20 pesanan terakhir agar session tidak membengkak
+    $_SESSION['pesanan_tamu'] = array_slice(array_values(array_unique($daftar)), -20);
+}
+
+/**
  * Mengambil rincian item pesanan dari DataStore D3 (DETAIL_PESANAN) JOIN D1 (MENU)
  *
  * @param mysqli $conn

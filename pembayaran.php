@@ -8,6 +8,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/functions_auth.php';
 require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
@@ -21,12 +22,17 @@ if ($id_pesanan <= 0) {
     exit;
 }
 
+// Verifikasi kepemilikan SEBELUM aksi apa pun; pesanan milik orang lain
+// diperlakukan seolah tidak ada agar ID tidak bisa ditebak
+$pesanan_cek = ambil_pesanan_by_id($conn, $id_pesanan);
+if ($pesanan_cek !== null && !boleh_akses_pesanan(ambil_pengguna_login(), $pesanan_cek)) {
+    $pesanan_cek = null;
+}
+
 // 1. Tangani Aksi Simulasi Pembayaran (Proses 2.0)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['aksi'] === 'bayar_pesanan') {
     $metode_bayar = isset($_POST['metode_bayar']) ? (string) $_POST['metode_bayar'] : 'GoPay';
-    
-    // Ambil data pesanan saat ini
-    $pesanan_cek = ambil_pesanan_by_id($conn, $id_pesanan);
+
     if ($pesanan_cek !== null) {
         if ($pesanan_cek['status_pesanan'] === 'Menunggu') {
             // Perbarui status pesanan di D2 (PESANAN) menjadi 'Diproses'
@@ -49,7 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
 }
 
 // 2. Ambil Data Pesanan dari D2 (PESANAN) dan D3 (DETAIL_PESANAN)
-$pesanan = ambil_pesanan_by_id($conn, $id_pesanan);
+// Ambil ulang agar status terbaru tampil; $pesanan_cek null berarti tidak ada / tidak berhak
+$pesanan = ($pesanan_cek !== null) ? ambil_pesanan_by_id($conn, $id_pesanan) : null;
 
 if ($pesanan === null) {
     $judul_halaman = 'Pesanan Tidak Ditemukan';
