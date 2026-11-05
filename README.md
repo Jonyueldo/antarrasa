@@ -134,6 +134,12 @@ c:\xampp\htdocs\antarrasa\
    ```
    Sesuaikan kredensial di dalamnya bila MySQL Anda tidak memakai default XAMPP (`root` tanpa password).
 4. Buat database `antarrasa_db` di `http://localhost/phpmyadmin` (impor file `database/antarrasa.sql` atau biarkan skrip migrasi otomatis berjalan).
+   > **Penting saat membuat ulang dump database:** jangan memakai `mysqldump ... > database/antarrasa.sql`
+   > di PowerShell, karena redirect `>` di PowerShell menyimpan file sebagai **UTF-16** yang tidak bisa
+   > diimpor di macOS/Linux. Gunakan opsi `--result-file` agar hasilnya UTF-8:
+   > ```
+   > C:\xampp\mysql\bin\mysqldump.exe -u root antarrasa_db --result-file=database/antarrasa.sql
+   > ```
 5. Buka peramban di:
    ```
    http://localhost/antarrasa

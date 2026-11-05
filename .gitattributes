@@ -1,0 +1,2 @@
+# Dump & skrip SQL selalu LF agar identik di Windows, macOS, dan Linux
+*.sql text eol=lf
