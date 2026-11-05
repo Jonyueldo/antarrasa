@@ -127,6 +127,17 @@ function peran_pengguna_saat_ini(): ?string
 }
 
 /**
+ * Memeriksa apakah fitur demo (quick login & panel simulasi status) boleh aktif.
+ * Bernilai false jika konstanta MODE_DEMO tidak didefinisikan di config/database.php.
+ *
+ * @return bool
+ */
+function mode_demo_aktif(): bool
+{
+    return defined('MODE_DEMO') && constant('MODE_DEMO') === true;
+}
+
+/**
  * Pemeriksa Hak Akses Berdasarkan Peran (Role-Based Access Control)
  * Mengalihkan halaman jika pengguna belum login atau peran tidak cocok.
  *

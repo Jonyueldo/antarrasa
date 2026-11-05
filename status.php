@@ -9,6 +9,7 @@ declare(strict_types=1);
  */
 
 require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/includes/functions_auth.php';
 require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
@@ -21,9 +22,20 @@ if ($id_pesanan <= 0) {
     exit;
 }
 
+// Panel simulasi hanya untuk admin saat MODE_DEMO aktif
+$boleh_simulasi = mode_demo_aktif() && peran_pengguna_saat_ini() === 'admin';
+
 // 1. Tangani Aksi Simulasi Pengantaran / Merchant (Proses 3.0)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_status'])) {
-    $status_tujuan = (string) $_POST['status_tujuan'];
+    // Wajib login sebagai admin sebelum aksi apa pun diproses
+    cek_akses(['admin']);
+
+    if (!$boleh_simulasi) {
+        header("Location: status.php?id=" . $id_pesanan);
+        exit;
+    }
+
+    $status_tujuan = (string) ($_POST['status_tujuan'] ?? '');
     $valid_transisi = ['Menunggu', 'Diproses', 'Dikirim', 'Selesai'];
 
     if (in_array($status_tujuan, $valid_transisi, true)) {
@@ -226,7 +238,8 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
 
-        <!-- Panel Simulasi Aktor Pengujian (Merchant & Driver) -->
+        <!-- Panel Simulasi Aktor Pengujian (hanya admin + MODE_DEMO) -->
+        <?php if ($boleh_simulasi): ?>
         <div class="card shadow-sm border-0 rounded-4 p-4 bg-white mb-4">
             <div class="d-flex align-items-center mb-2">
                 <i class="bi bi-sliders text-warning fs-5 me-2"></i>
@@ -274,6 +287,7 @@ require_once __DIR__ . '/includes/header.php';
                 </form>
             </div>
         </div>
+        <?php endif; ?>
     </div>
 
     <!-- Kolom Kanan: Info Driver, Resto, dan Ringkasan Menu -->
