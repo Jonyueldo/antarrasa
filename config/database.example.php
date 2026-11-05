@@ -63,7 +63,7 @@ if (!$conn) {
                     <h6>Langkah Penyelesaian:</h6>
                     <ol class="small text-muted">
                         <li>Pastikan modul <strong>MySQL</strong> pada <strong>XAMPP Control Panel</strong> sudah dalam status <strong>Running</strong>.</li>
-                        <li>Pastikan basis data <code>antarrasa_db</code> telah dibuat dan diimpor dari file <code>database/antarrasa.sql</code> melalui phpMyAdmin (<code>http://localhost/phpmyadmin</code>).</li>
+                        <li>Siapkan basis data <code>antarrasa_db</code> dengan menjalankan <code>database/tools/setup</code>: <code>database\tools\setup.bat</code> (Windows) atau <code>sh database/tools/setup.sh</code> (macOS/Linux).</li>
                         <li>Periksa kredensial pada file <code>config/database.php</code> (default XAMPP: user: <code>root</code>, password: <em>kosong</em>).</li>
                     </ol>
                 </div>
@@ -81,7 +81,7 @@ mysqli_set_charset($conn, 'utf8mb4');
 // 6. Pastikan autocommit aktif agar setiap manipulasi tersimpan permanen ke MySQL
 mysqli_autocommit($conn, true);
 
-// 7. Jalankan Inisialisasi Skema DataStore D4 (HANYA migrasi struktur & HANYA seed jika tabel benar-benar kosong 0 baris)
+// 7. Muat modul autentikasi & admin.
+// Skema TIDAK lagi dibuat/diubah otomatis per request; gunakan database/tools/setup.
 require_once __DIR__ . '/../includes/functions_auth.php';
 require_once __DIR__ . '/../includes/functions_admin.php';
-inisialisasi_tabel_pengguna($conn);

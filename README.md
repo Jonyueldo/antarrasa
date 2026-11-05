@@ -95,8 +95,8 @@ c:\xampp\htdocs\antarrasa\
 ├── .gitignore                      # Berkas pengecualian Git
 ├── README.md                       # Dokumentasi sistem, setup XAMPP, dan panduan tim
 ├── config/
-│   ├── database.php                # Koneksi MySQLi prosedural + Auto-Migration DataStore D4
-│   └── database.example.php        # Template konfigurasi basis data
+│   ├── database.php                # Koneksi MySQLi prosedural (lokal, tidak di-commit)
+│   └── database.example.php        # Template konfigurasi basis data (salin menjadi database.php)
 ├── database/
 │   ├── schema.sql                  # DDL terbaru 4 tabel (D1, D2, D3, D4), aman dijalankan ulang
 │   ├── seed.sql                    # Data demo (INSERT IGNORE)
@@ -107,7 +107,7 @@ c:\xampp\htdocs\antarrasa\
 │   ├── header.php                  # Header adaptif peran (Navbar Customer, Portal Merchant, HUD Driver, Sidebar Admin)
 │   ├── footer.php                  # Penutup layout adaptif & skrip Bootstrap 5.3
 │   ├── functions_order.php         # Modul inti logika pemesanan & manajemen menu
-│   ├── functions_auth.php          # Modul autentikasi, registrasi customer, & auto-migration
+│   ├── functions_auth.php          # Modul autentikasi, sesi, CSRF, & registrasi customer
 │   └── functions_admin.php         # Modul manajemen pengguna Admin (CRUD murni MySQL tanpa auto-seed berulang)
 ├── assets/
 │   └── css/
