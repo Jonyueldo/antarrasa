@@ -12,13 +12,24 @@ require_once __DIR__ . '/includes/functions_order.php';
 
 mulai_sesi();
 
-$pengguna = ambil_pengguna_login();
-$peran = $pengguna['peran'] ?? null;
-$id_user = $pengguna['id_pengguna'] ?? null;
+// Halaman ini wajib login; tamu dialihkan ke login.php
+cek_akses(['customer', 'merchant', 'driver', 'admin']);
 
-// Jika customer yang login, prioritaskan menampilkan pesanannya sendiri
-$filter_id_pengguna = ($peran === 'customer') ? $id_user : null;
-$daftar_pesanan = ambil_semua_pesanan($conn, 50, null, $filter_id_pengguna);
+$pengguna = ambil_pengguna_login();
+$peran = (string) ($pengguna['peran'] ?? '');
+$id_user = (int) ($pengguna['id_pengguna'] ?? 0);
+
+if ($peran === 'customer') {
+    // Customer DIPAKSA hanya melihat pesanannya sendiri; id tidak valid = tolak
+    if ($id_user <= 0) {
+        header('Location: login.php?pesan=akses_ditolak');
+        exit;
+    }
+    $daftar_pesanan = ambil_semua_pesanan($conn, 50, null, $id_user);
+} else {
+    // Merchant, driver, dan admin melihat seluruh transaksi
+    $daftar_pesanan = ambil_semua_pesanan($conn, 50, null, null);
+}
 
 $judul_halaman = ($peran === 'customer') ? 'Pesanan Saya' : 'Riwayat Transaksi Pesanan';
 $tampilkan_stepper = false;
