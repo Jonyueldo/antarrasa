@@ -44,7 +44,7 @@ function ambil_semua_pengguna($conn, string $filter_peran = ''): array
     $peran_valid = ['customer', 'merchant', 'driver', 'admin'];
 
     if ($filter_bersih !== '' && in_array($filter_bersih, $peran_valid, true)) {
-        $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM `PENGGUNA` WHERE `peran` = ? ORDER BY `id_pengguna` ASC";
+        $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM `pengguna` WHERE `peran` = ? ORDER BY `id_pengguna` ASC";
         $stmt = mysqli_prepare($conn, $sql);
         if ($stmt) {
             mysqli_stmt_bind_param($stmt, "s", $filter_bersih);
@@ -57,7 +57,7 @@ function ambil_semua_pengguna($conn, string $filter_peran = ''): array
             mysqli_stmt_close($stmt);
         }
     } else {
-        $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM `PENGGUNA` ORDER BY `id_pengguna` ASC";
+        $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM `pengguna` ORDER BY `id_pengguna` ASC";
         $q = mysqli_query($conn, $sql);
         if ($q !== false) {
             $daftar = mysqli_fetch_all($q, MYSQLI_ASSOC);
@@ -81,7 +81,7 @@ function ambil_pengguna_by_id($conn, int $id_pengguna): ?array
         return null;
     }
 
-    $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM `PENGGUNA` WHERE `id_pengguna` = ? LIMIT 1";
+    $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM `pengguna` WHERE `id_pengguna` = ? LIMIT 1";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         return null;
@@ -109,7 +109,7 @@ function ambil_pengguna_by_id($conn, int $id_pengguna): ?array
  */
 function hitung_jumlah_admin($conn): int
 {
-    $q = mysqli_query($conn, "SELECT COUNT(*) AS jml FROM `PENGGUNA` WHERE `peran` = 'admin'");
+    $q = mysqli_query($conn, "SELECT COUNT(*) AS jml FROM `pengguna` WHERE `peran` = 'admin'");
     if ($q === false) {
         catat_error_db($conn, 'hitung_jumlah_admin');
         return 0;
@@ -158,7 +158,7 @@ function admin_tambah_pengguna($conn, string $username, string $password, string
     }
 
     // Periksa keunikan username langsung di MySQL
-    $sql_cek = "SELECT id_pengguna FROM `PENGGUNA` WHERE `username` = ? LIMIT 1";
+    $sql_cek = "SELECT id_pengguna FROM `pengguna` WHERE `username` = ? LIMIT 1";
     $stmt_cek = mysqli_prepare($conn, $sql_cek);
     if (!$stmt_cek) {
         catat_error_db($conn, 'admin_tambah_pengguna: prepare cek username');
@@ -182,7 +182,7 @@ function admin_tambah_pengguna($conn, string $username, string $password, string
     // Hash kata sandi menggunakan standar bcrypt
     $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-    $sql_ins = "INSERT INTO `PENGGUNA` (`username`, `password`, `nama_lengkap`, `peran`) VALUES (?, ?, ?, ?)";
+    $sql_ins = "INSERT INTO `pengguna` (`username`, `password`, `nama_lengkap`, `peran`) VALUES (?, ?, ?, ?)";
     $stmt_ins = mysqli_prepare($conn, $sql_ins);
     if (!$stmt_ins) {
         catat_error_db($conn, 'admin_tambah_pengguna: prepare insert');
@@ -275,7 +275,7 @@ function admin_ubah_pengguna(
     }
 
     // Periksa apakah username sudah dipakai oleh akun LAIN
-    $sql_cek = "SELECT id_pengguna FROM `PENGGUNA` WHERE `username` = ? AND `id_pengguna` != ? LIMIT 1";
+    $sql_cek = "SELECT id_pengguna FROM `pengguna` WHERE `username` = ? AND `id_pengguna` != ? LIMIT 1";
     $stmt_cek = mysqli_prepare($conn, $sql_cek);
     if (!$stmt_cek) {
         catat_error_db($conn, 'admin_ubah_pengguna: prepare cek username');
@@ -303,7 +303,7 @@ function admin_ubah_pengguna(
         }
 
         $password_hash = password_hash($password_baru, PASSWORD_DEFAULT);
-        $sql_update = "UPDATE `PENGGUNA` SET `username` = ?, `password` = ?, `nama_lengkap` = ?, `peran` = ? WHERE `id_pengguna` = ?";
+        $sql_update = "UPDATE `pengguna` SET `username` = ?, `password` = ?, `nama_lengkap` = ?, `peran` = ? WHERE `id_pengguna` = ?";
         $stmt_update = mysqli_prepare($conn, $sql_update);
         if (!$stmt_update) {
             catat_error_db($conn, 'admin_ubah_pengguna: prepare update + password');
@@ -312,7 +312,7 @@ function admin_ubah_pengguna(
 
         mysqli_stmt_bind_param($stmt_update, "ssssi", $username_bersih, $password_hash, $nama_bersih, $peran_bersih, $id_pengguna);
     } else {
-        $sql_update = "UPDATE `PENGGUNA` SET `username` = ?, `nama_lengkap` = ?, `peran` = ? WHERE `id_pengguna` = ?";
+        $sql_update = "UPDATE `pengguna` SET `username` = ?, `nama_lengkap` = ?, `peran` = ? WHERE `id_pengguna` = ?";
         $stmt_update = mysqli_prepare($conn, $sql_update);
         if (!$stmt_update) {
             catat_error_db($conn, 'admin_ubah_pengguna: prepare update');
@@ -392,7 +392,7 @@ function admin_hapus_pengguna($conn, int $id_pengguna, int $id_admin_aktif): arr
 
     // 1. ATASI MASALAH FOREIGN KEY:
     // Lepaskan referensi id_pengguna di tabel PESANAN sebelum menghapus pengguna
-    $stmt_fk = mysqli_prepare($conn, "UPDATE `PESANAN` SET `id_pengguna` = NULL WHERE `id_pengguna` = ?");
+    $stmt_fk = mysqli_prepare($conn, "UPDATE `pesanan` SET `id_pengguna` = NULL WHERE `id_pengguna` = ?");
     if ($stmt_fk) {
         mysqli_stmt_bind_param($stmt_fk, "i", $id_pengguna);
         mysqli_stmt_execute($stmt_fk);
@@ -400,7 +400,7 @@ function admin_hapus_pengguna($conn, int $id_pengguna, int $id_admin_aktif): arr
     }
 
     // 2. HAPUS PENGGUNA SECARA PERMANEN DARI TABEL PENGGUNA (D4)
-    $stmt_del = mysqli_prepare($conn, "DELETE FROM `PENGGUNA` WHERE `id_pengguna` = ?");
+    $stmt_del = mysqli_prepare($conn, "DELETE FROM `pengguna` WHERE `id_pengguna` = ?");
     if (!$stmt_del) {
         catat_error_db($conn, 'admin_hapus_pengguna: prepare delete');
         return ['sukses' => false, 'pesan' => PESAN_ERROR_DB_UMUM];
@@ -440,7 +440,7 @@ function hitung_rekap_peran_pengguna($conn): array
         'admin'    => 0,
     ];
 
-    $sql = "SELECT `peran`, COUNT(*) as jml FROM `PENGGUNA` GROUP BY `peran`";
+    $sql = "SELECT `peran`, COUNT(*) as jml FROM `pengguna` GROUP BY `peran`";
     $q = mysqli_query($conn, $sql);
     if ($q !== false) {
         while ($row = mysqli_fetch_assoc($q)) {

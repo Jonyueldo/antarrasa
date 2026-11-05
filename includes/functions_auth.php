@@ -35,7 +35,7 @@ function inisialisasi_tabel_pengguna($conn): void
 {
     // 1. Buat tabel PENGGUNA jika belum ada sama sekali di MySQL
     $sql_tabel_pengguna = "
-    CREATE TABLE IF NOT EXISTS `PENGGUNA` (
+    CREATE TABLE IF NOT EXISTS `pengguna` (
         `id_pengguna` INT NOT NULL AUTO_INCREMENT,
         `username` VARCHAR(50) NOT NULL UNIQUE,
         `password` VARCHAR(255) NOT NULL,
@@ -47,15 +47,15 @@ function inisialisasi_tabel_pengguna($conn): void
     mysqli_query($conn, $sql_tabel_pengguna);
 
     // 2. Periksa apakah kolom id_pengguna ada di tabel PESANAN dan izinkan bernilai NULL
-    $cek_kolom = mysqli_query($conn, "SHOW COLUMNS FROM `PESANAN` LIKE 'id_pengguna'");
+    $cek_kolom = mysqli_query($conn, "SHOW COLUMNS FROM `pesanan` LIKE 'id_pengguna'");
     if ($cek_kolom !== false) {
         if (mysqli_num_rows($cek_kolom) === 0) {
             // Tambahkan kolom id_pengguna ke tabel PESANAN
-            mysqli_query($conn, "ALTER TABLE `PESANAN` ADD COLUMN `id_pengguna` INT NULL DEFAULT NULL AFTER `id_pesanan`");
-            mysqli_query($conn, "ALTER TABLE `PESANAN` ADD CONSTRAINT `fk_pesanan_pengguna` FOREIGN KEY (`id_pengguna`) REFERENCES `PENGGUNA` (`id_pengguna`) ON DELETE SET NULL ON UPDATE CASCADE");
+            mysqli_query($conn, "ALTER TABLE `pesanan` ADD COLUMN `id_pengguna` INT NULL DEFAULT NULL AFTER `id_pesanan`");
+            mysqli_query($conn, "ALTER TABLE `pesanan` ADD CONSTRAINT `fk_pesanan_pengguna` FOREIGN KEY (`id_pengguna`) REFERENCES `pengguna` (`id_pengguna`) ON DELETE SET NULL ON UPDATE CASCADE");
         } else {
             // Pastikan kolom id_pengguna boleh NULL agar penghapusan user tidak terblokir
-            mysqli_query($conn, "ALTER TABLE `PESANAN` MODIFY COLUMN `id_pengguna` INT NULL DEFAULT NULL");
+            mysqli_query($conn, "ALTER TABLE `pesanan` MODIFY COLUMN `id_pengguna` INT NULL DEFAULT NULL");
         }
         mysqli_free_result($cek_kolom);
     }
@@ -63,7 +63,7 @@ function inisialisasi_tabel_pengguna($conn): void
     // 3. SEEDING AKUN AWAL:
     // HANYA jalankan JIKA tabel PENGGUNA benar-benar kosong melompong (COUNT = 0).
     // Jika tabel sudah memiliki 1 akun atau lebih, JANGAN PERNAH menyuntikkan data lagi!
-    $cek_isi = mysqli_query($conn, "SELECT COUNT(*) AS total FROM `PENGGUNA`");
+    $cek_isi = mysqli_query($conn, "SELECT COUNT(*) AS total FROM `pengguna`");
     if ($cek_isi !== false) {
         $row = mysqli_fetch_assoc($cek_isi);
         $total_akun = (int)($row['total'] ?? 0);
@@ -78,7 +78,7 @@ function inisialisasi_tabel_pengguna($conn): void
                 ['username' => 'admin',    'nama_lengkap' => 'Administrator AntarRasa', 'peran' => 'admin'],
             ];
 
-            $sql_insert = "INSERT INTO `PENGGUNA` (`username`, `password`, `nama_lengkap`, `peran`) VALUES (?, ?, ?, ?)";
+            $sql_insert = "INSERT INTO `pengguna` (`username`, `password`, `nama_lengkap`, `peran`) VALUES (?, ?, ?, ?)";
             $stmt_insert = mysqli_prepare($conn, $sql_insert);
             if ($stmt_insert) {
                 foreach ($akun_default as $akun) {
@@ -277,7 +277,7 @@ function login_pengguna($conn, string $username, string $password): array|false
         return false;
     }
 
-    $sql = "SELECT `id_pengguna`, `username`, `password`, `nama_lengkap`, `peran` FROM `PENGGUNA` WHERE `username` = ? LIMIT 1";
+    $sql = "SELECT `id_pengguna`, `username`, `password`, `nama_lengkap`, `peran` FROM `pengguna` WHERE `username` = ? LIMIT 1";
     $stmt = mysqli_prepare($conn, $sql);
 
     if (!$stmt) {
@@ -367,7 +367,7 @@ function registrasi_customer($conn, string $username, string $password, string $
     }
 
     // Periksa apakah username sudah digunakan di MySQL
-    $sql_cek = "SELECT `id_pengguna` FROM `PENGGUNA` WHERE `username` = ? LIMIT 1";
+    $sql_cek = "SELECT `id_pengguna` FROM `pengguna` WHERE `username` = ? LIMIT 1";
     $stmt_cek = mysqli_prepare($conn, $sql_cek);
     if (!$stmt_cek) {
         return ['sukses' => false, 'pesan' => 'Gagal mempersiapkan kueri verifikasi username.', 'id_pengguna' => null];
@@ -391,7 +391,7 @@ function registrasi_customer($conn, string $username, string $password, string $
     $password_hash = password_hash($password, PASSWORD_DEFAULT);
     $peran = 'customer';
 
-    $sql_insert = "INSERT INTO `PENGGUNA` (`username`, `password`, `nama_lengkap`, `peran`) VALUES (?, ?, ?, ?)";
+    $sql_insert = "INSERT INTO `pengguna` (`username`, `password`, `nama_lengkap`, `peran`) VALUES (?, ?, ?, ?)";
     $stmt_insert = mysqli_prepare($conn, $sql_insert);
     if (!$stmt_insert) {
         return ['sukses' => false, 'pesan' => 'Gagal mempersiapkan kueri registrasi pengguna.', 'id_pengguna' => null];

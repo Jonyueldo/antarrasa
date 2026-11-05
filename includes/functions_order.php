@@ -26,7 +26,7 @@ declare(strict_types=1);
 function ambil_semua_menu($conn): array
 {
     $daftar_menu = [];
-    $sql = "SELECT id_menu, nama_menu, harga, deskripsi, status_menu FROM MENU ORDER BY id_menu ASC";
+    $sql = "SELECT id_menu, nama_menu, harga, deskripsi, status_menu FROM menu ORDER BY id_menu ASC";
     
     $query = mysqli_query($conn, $sql);
     if ($query !== false) {
@@ -46,7 +46,7 @@ function ambil_semua_menu($conn): array
  */
 function ambil_menu_by_id($conn, int $id_menu): ?array
 {
-    $sql = "SELECT id_menu, nama_menu, harga, deskripsi, status_menu FROM MENU WHERE id_menu = ? LIMIT 1";
+    $sql = "SELECT id_menu, nama_menu, harga, deskripsi, status_menu FROM menu WHERE id_menu = ? LIMIT 1";
     $stmt = mysqli_prepare($conn, $sql);
     
     if (!$stmt) {
@@ -90,7 +90,7 @@ function tambah_menu_makanan($conn, string $nama_menu, float $harga, string $des
         $status_menu = 'Tersedia';
     }
 
-    $sql = "INSERT INTO MENU (nama_menu, harga, deskripsi, status_menu) VALUES (?, ?, ?, ?)";
+    $sql = "INSERT INTO menu (nama_menu, harga, deskripsi, status_menu) VALUES (?, ?, ?, ?)";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         return false;
@@ -136,7 +136,7 @@ function ubah_status_menu($conn, int $id_menu, string $status_baru): bool
         return true;
     }
 
-    $sql = "UPDATE MENU SET status_menu = ? WHERE id_menu = ?";
+    $sql = "UPDATE menu SET status_menu = ? WHERE id_menu = ?";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         return false;
@@ -159,7 +159,7 @@ function ubah_status_menu($conn, int $id_menu, string $status_baru): bool
  */
 function hapus_menu($conn, int $id_menu): bool
 {
-    $sql = "DELETE FROM MENU WHERE id_menu = ?";
+    $sql = "DELETE FROM menu WHERE id_menu = ?";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         return false;
@@ -306,7 +306,7 @@ function simpan_pesanan($conn, string $alamat, array $detail_items, ?int $id_pen
 
     // 2. Insert ke DataStore D2 (PESANAN)
     if ($id_pengguna !== null && $id_pengguna > 0) {
-        $sql_pesanan = "INSERT INTO PESANAN (id_pengguna, alamat_pengiriman, total_harga, status_pesanan) VALUES (?, ?, ?, ?)";
+        $sql_pesanan = "INSERT INTO pesanan (id_pengguna, alamat_pengiriman, total_harga, status_pesanan) VALUES (?, ?, ?, ?)";
         $stmt_pesanan = mysqli_prepare($conn, $sql_pesanan);
 
         if (!$stmt_pesanan) {
@@ -316,7 +316,7 @@ function simpan_pesanan($conn, string $alamat, array $detail_items, ?int $id_pen
 
         mysqli_stmt_bind_param($stmt_pesanan, "isds", $id_pengguna, $alamat, $total_harga, $status_awal);
     } else {
-        $sql_pesanan = "INSERT INTO PESANAN (id_pengguna, alamat_pengiriman, total_harga, status_pesanan) VALUES (NULL, ?, ?, ?)";
+        $sql_pesanan = "INSERT INTO pesanan (id_pengguna, alamat_pengiriman, total_harga, status_pesanan) VALUES (NULL, ?, ?, ?)";
         $stmt_pesanan = mysqli_prepare($conn, $sql_pesanan);
 
         if (!$stmt_pesanan) {
@@ -344,7 +344,7 @@ function simpan_pesanan($conn, string $alamat, array $detail_items, ?int $id_pen
     }
 
     // 3. Insert ke DataStore D3 (DETAIL_PESANAN) menggunakan Prepared Statement
-    $sql_detail = "INSERT INTO DETAIL_PESANAN (id_pesanan, id_menu, jumlah, subtotal) VALUES (?, ?, ?, ?)";
+    $sql_detail = "INSERT INTO detail_pesanan (id_pesanan, id_menu, jumlah, subtotal) VALUES (?, ?, ?, ?)";
     $stmt_detail = mysqli_prepare($conn, $sql_detail);
 
     if (!$stmt_detail) {
@@ -395,8 +395,8 @@ function ambil_pesanan_by_id($conn, int $id_pesanan): ?array
     $sql = "SELECT p.id_pesanan, p.id_pengguna, p.tanggal_pesanan, p.alamat_pengiriman, 
                    p.total_harga, p.status_pesanan,
                    u.nama_lengkap AS nama_pemesan, u.username AS username_pemesan
-            FROM PESANAN p 
-            LEFT JOIN PENGGUNA u ON p.id_pengguna = u.id_pengguna
+            FROM pesanan p 
+            LEFT JOIN pengguna u ON p.id_pengguna = u.id_pengguna
             WHERE p.id_pesanan = ? 
             LIMIT 1";
     
@@ -482,8 +482,8 @@ function ambil_detail_pesanan($conn, int $id_pesanan): array
 {
     $items = [];
     $sql = "SELECT d.id_detail, d.id_pesanan, d.id_menu, d.jumlah, d.subtotal, m.nama_menu, m.harga 
-            FROM DETAIL_PESANAN d
-            JOIN MENU m ON d.id_menu = m.id_menu
+            FROM detail_pesanan d
+            JOIN menu m ON d.id_menu = m.id_menu
             WHERE d.id_pesanan = ?
             ORDER BY d.id_detail ASC";
 
@@ -520,8 +520,8 @@ function ambil_semua_pesanan($conn, int $limit = 50, ?string $status_filter = nu
     $sql = "SELECT p.id_pesanan, p.id_pengguna, p.tanggal_pesanan, p.alamat_pengiriman, 
                    p.total_harga, p.status_pesanan,
                    u.nama_lengkap AS nama_pemesan, u.username AS username_pemesan 
-            FROM PESANAN p 
-            LEFT JOIN PENGGUNA u ON p.id_pengguna = u.id_pengguna";
+            FROM pesanan p 
+            LEFT JOIN pengguna u ON p.id_pengguna = u.id_pengguna";
 
     $conditions = [];
     $params = [];
@@ -591,7 +591,7 @@ function update_status_pesanan($conn, int $id_pesanan, string $status_baru): boo
         return true;
     }
 
-    $sql = "UPDATE PESANAN SET status_pesanan = ? WHERE id_pesanan = ?";
+    $sql = "UPDATE pesanan SET status_pesanan = ? WHERE id_pesanan = ?";
     $stmt = mysqli_prepare($conn, $sql);
 
     if (!$stmt) {
@@ -617,7 +617,7 @@ function update_status_pesanan($conn, int $id_pesanan, string $status_baru): boo
 function ambil_driver_aktif($conn, ?int $id_driver = null): ?array
 {
     if ($id_driver !== null && $id_driver > 0) {
-        $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM PENGGUNA WHERE id_pengguna = ? AND peran = 'driver' LIMIT 1";
+        $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM pengguna WHERE id_pengguna = ? AND peran = 'driver' LIMIT 1";
         $stmt = mysqli_prepare($conn, $sql);
         if ($stmt) {
             mysqli_stmt_bind_param($stmt, "i", $id_driver);
@@ -631,7 +631,7 @@ function ambil_driver_aktif($conn, ?int $id_driver = null): ?array
         }
     }
 
-    $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM PENGGUNA WHERE peran = 'driver' ORDER BY id_pengguna ASC LIMIT 1";
+    $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM pengguna WHERE peran = 'driver' ORDER BY id_pengguna ASC LIMIT 1";
     $query = mysqli_query($conn, $sql);
     if ($query !== false) {
         $driver = mysqli_fetch_assoc($query);
@@ -653,7 +653,7 @@ function ambil_driver_aktif($conn, ?int $id_driver = null): ?array
 function ambil_merchant_aktif($conn, ?int $id_merchant = null): ?array
 {
     if ($id_merchant !== null && $id_merchant > 0) {
-        $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM PENGGUNA WHERE id_pengguna = ? AND peran = 'merchant' LIMIT 1";
+        $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM pengguna WHERE id_pengguna = ? AND peran = 'merchant' LIMIT 1";
         $stmt = mysqli_prepare($conn, $sql);
         if ($stmt) {
             mysqli_stmt_bind_param($stmt, "i", $id_merchant);
@@ -667,7 +667,7 @@ function ambil_merchant_aktif($conn, ?int $id_merchant = null): ?array
         }
     }
 
-    $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM PENGGUNA WHERE peran = 'merchant' ORDER BY id_pengguna ASC LIMIT 1";
+    $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM pengguna WHERE peran = 'merchant' ORDER BY id_pengguna ASC LIMIT 1";
     $query = mysqli_query($conn, $sql);
     if ($query !== false) {
         $merchant = mysqli_fetch_assoc($query);
@@ -698,7 +698,7 @@ function hitung_statistik_admin($conn): array
     ];
 
     // Total Pengguna
-    $q_user = mysqli_query($conn, "SELECT COUNT(*) as jml FROM PENGGUNA");
+    $q_user = mysqli_query($conn, "SELECT COUNT(*) as jml FROM pengguna");
     if ($q_user !== false) {
         $row = mysqli_fetch_assoc($q_user);
         $stats['total_pengguna'] = (int) ($row['jml'] ?? 0);
@@ -706,7 +706,7 @@ function hitung_statistik_admin($conn): array
     }
 
     // Total Menu
-    $q_menu = mysqli_query($conn, "SELECT COUNT(*) as jml FROM MENU");
+    $q_menu = mysqli_query($conn, "SELECT COUNT(*) as jml FROM menu");
     if ($q_menu !== false) {
         $row = mysqli_fetch_assoc($q_menu);
         $stats['total_menu'] = (int) ($row['jml'] ?? 0);
@@ -714,7 +714,7 @@ function hitung_statistik_admin($conn): array
     }
 
     // Total Pesanan
-    $q_pesanan = mysqli_query($conn, "SELECT COUNT(*) as jml FROM PESANAN");
+    $q_pesanan = mysqli_query($conn, "SELECT COUNT(*) as jml FROM pesanan");
     if ($q_pesanan !== false) {
         $row = mysqli_fetch_assoc($q_pesanan);
         $stats['total_pesanan'] = (int) ($row['jml'] ?? 0);
@@ -722,7 +722,7 @@ function hitung_statistik_admin($conn): array
     }
 
     // Total Pendapatan (Pesanan yang sudah dibayar: Diproses, Dikirim, Selesai)
-    $q_rev = mysqli_query($conn, "SELECT SUM(total_harga) as rev FROM PESANAN WHERE status_pesanan IN ('Diproses', 'Dikirim', 'Selesai')");
+    $q_rev = mysqli_query($conn, "SELECT SUM(total_harga) as rev FROM pesanan WHERE status_pesanan IN ('Diproses', 'Dikirim', 'Selesai')");
     if ($q_rev !== false) {
         $row = mysqli_fetch_assoc($q_rev);
         $stats['total_pendapatan'] = (float) ($row['rev'] ?? 0.0);

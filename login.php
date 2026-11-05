@@ -43,7 +43,7 @@ $akun_peran = [
     'admin'    => null,
 ];
 
-$res_pengguna = mysqli_query($conn, "SELECT id_pengguna, username, nama_lengkap, peran FROM PENGGUNA ORDER BY id_pengguna ASC");
+$res_pengguna = mysqli_query($conn, "SELECT id_pengguna, username, nama_lengkap, peran FROM pengguna ORDER BY id_pengguna ASC");
 if ($res_pengguna !== false) {
     while ($row = mysqli_fetch_assoc($res_pengguna)) {
         $p = (string)$row['peran'];

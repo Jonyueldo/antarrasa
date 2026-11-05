@@ -16,7 +16,7 @@
 - **Keamanan Output (Anti-XSS)**:
   - Wajib membungkus seluruh data dinamis yang ditampilkan ke HTML dengan `htmlspecialchars((string) $nilai, ENT_QUOTES, 'UTF-8')`.
 - **Konsistensi Skema Database**:
-  - Pertahankan konsistensi nama tabel utama sesuai `database/antarrasa.sql` (`PENGGUNA`, `MENU`, `PESANAN`, `DETAIL_PESANAN`) agar berjalan lancar di Windows maupun macOS/Linux.
+  - Pertahankan konsistensi nama tabel utama sesuai `database/antarrasa.sql`, yaitu **huruf kecil** (`pengguna`, `menu`, `pesanan`, `detail_pesanan`), baik di DDL maupun di seluruh query PHP. Nama tabel di MySQL/MariaDB bersifat case-sensitive di macOS/Linux, sehingga query `FROM PENGGUNA` akan gagal di sana walaupun berjalan di Windows.
 
 ## 3. Alur Kerja Berdasarkan `ROADMAP.md`
 - Kerjakan tugas pada `ROADMAP.md` secara bertahap sesuai urutan prioritas atau poin spesifik yang diminta pengguna.
