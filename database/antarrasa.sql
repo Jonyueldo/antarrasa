@@ -81,7 +81,9 @@ CREATE TABLE `menu` (
   `is_aktif` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id_menu`),
   KEY `fk_menu_merchant` (`id_merchant`),
-  CONSTRAINT `fk_menu_merchant` FOREIGN KEY (`id_merchant`) REFERENCES `pengguna` (`id_pengguna`) ON DELETE SET NULL ON UPDATE CASCADE
+  KEY `idx_menu_status` (`status_menu`),
+  CONSTRAINT `fk_menu_merchant` FOREIGN KEY (`id_merchant`) REFERENCES `pengguna` (`id_pengguna`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `chk_status_menu` CHECK (`status_menu` in ('Tersedia','Habis'))
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -116,6 +118,7 @@ CREATE TABLE `pengguna` (
   `peran` varchar(20) NOT NULL DEFAULT 'customer',
   PRIMARY KEY (`id_pengguna`),
   UNIQUE KEY `username` (`username`),
+  KEY `idx_pengguna_peran` (`peran`),
   CONSTRAINT `chk_peran_pengguna` CHECK (`peran` in ('customer','merchant','driver','admin'))
 ) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -159,8 +162,11 @@ CREATE TABLE `pesanan` (
   PRIMARY KEY (`id_pesanan`),
   KEY `fk_pesanan_pengguna` (`id_pengguna`),
   KEY `fk_pesanan_driver` (`id_driver`),
+  KEY `idx_pesanan_status` (`status_pesanan`),
+  KEY `idx_pesanan_tanggal` (`tanggal_pesanan`),
   CONSTRAINT `fk_pesanan_driver` FOREIGN KEY (`id_driver`) REFERENCES `pengguna` (`id_pengguna`) ON DELETE SET NULL ON UPDATE CASCADE,
-  CONSTRAINT `fk_pesanan_pengguna` FOREIGN KEY (`id_pengguna`) REFERENCES `pengguna` (`id_pengguna`) ON DELETE SET NULL ON UPDATE CASCADE
+  CONSTRAINT `fk_pesanan_pengguna` FOREIGN KEY (`id_pengguna`) REFERENCES `pengguna` (`id_pengguna`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `chk_status_pesanan` CHECK (`status_pesanan` in ('Menunggu','Diproses','Dikirim','Selesai','Dibatalkan'))
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
