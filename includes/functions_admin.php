@@ -102,6 +102,24 @@ function ambil_pengguna_by_id($conn, int $id_pengguna): ?array
 }
 
 /**
+ * Menghitung jumlah akun berperan 'admin' di tabel PENGGUNA
+ *
+ * @param mysqli $conn
+ * @return int
+ */
+function hitung_jumlah_admin($conn): int
+{
+    $q = mysqli_query($conn, "SELECT COUNT(*) AS jml FROM `PENGGUNA` WHERE `peran` = 'admin'");
+    if ($q === false) {
+        catat_error_db($conn, 'hitung_jumlah_admin');
+        return 0;
+    }
+    $row = mysqli_fetch_assoc($q);
+    mysqli_free_result($q);
+    return (int) ($row['jml'] ?? 0);
+}
+
+/**
  * Menambahkan akun pengguna baru ke tabel MySQL PENGGUNA (DataStore D4)
  *
  * @param mysqli $conn
@@ -234,6 +252,28 @@ function admin_ubah_pengguna(
         return ['sukses' => false, 'pesan' => 'Peran pengguna tidak valid.'];
     }
 
+    $user_lama = ambil_pengguna_by_id($conn, $id_pengguna);
+    if ($user_lama === null) {
+        return ['sukses' => false, 'pesan' => 'Data pengguna tidak ditemukan di database MySQL.'];
+    }
+
+    // Proteksi administrator: berlaku saat akun admin akan diturunkan perannya
+    if ((string) $user_lama['peran'] === 'admin' && $peran_bersih !== 'admin') {
+        $id_login = (int) ($_SESSION['id_pengguna'] ?? 0);
+        if ($id_login === $id_pengguna) {
+            return [
+                'sukses' => false,
+                'pesan'  => 'Aksi ditolak: Anda tidak dapat menurunkan peran akun Administrator Anda sendiri. Minta admin lain untuk melakukannya.',
+            ];
+        }
+        if (hitung_jumlah_admin($conn) <= 1) {
+            return [
+                'sukses' => false,
+                'pesan'  => 'Aksi ditolak: akun ini adalah Administrator terakhir. Tambahkan admin lain terlebih dahulu sebelum mengubah perannya.',
+            ];
+        }
+    }
+
     // Periksa apakah username sudah dipakai oleh akun LAIN
     $sql_cek = "SELECT id_pengguna FROM `PENGGUNA` WHERE `username` = ? AND `id_pengguna` != ? LIMIT 1";
     $stmt_cek = mysqli_prepare($conn, $sql_cek);
@@ -341,6 +381,14 @@ function admin_hapus_pengguna($conn, int $id_pengguna, int $id_admin_aktif): arr
     }
 
     $username_lama = (string)$user['username'];
+
+    // Proteksi administrator terakhir: sistem tidak boleh kehilangan seluruh admin
+    if ((string) $user['peran'] === 'admin' && hitung_jumlah_admin($conn) <= 1) {
+        return [
+            'sukses' => false,
+            'pesan'  => 'Aksi ditolak: akun ini adalah Administrator terakhir dan tidak dapat dihapus.',
+        ];
+    }
 
     // 1. ATASI MASALAH FOREIGN KEY:
     // Lepaskan referensi id_pengguna di tabel PESANAN sebelum menghapus pengguna
