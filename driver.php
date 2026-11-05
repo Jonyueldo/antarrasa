@@ -324,7 +324,7 @@ require_once __DIR__ . '/includes/header.php';
         <span class="badge bg-success-subtle text-success border border-success-subtle"><?= count($pesanan_selesai) ?> Tuntas</span>
     </div>
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table tabel-kartu table-hover align-middle mb-0">
             <thead class="table-light small text-uppercase text-muted">
                 <tr>
                     <th class="ps-3">No. Order</th>
@@ -342,11 +342,11 @@ require_once __DIR__ . '/includes/header.php';
                 <?php else: ?>
                     <?php foreach ($pesanan_selesai as $order): ?>
                         <tr>
-                            <td class="ps-3 font-monospace fw-bold text-primary">#<?= (int)$order['id_pesanan'] ?></td>
-                            <td class="small fw-semibold"><?= e($order['nama_pemesan'] ?? 'Tamu (Guest)') ?></td>
-                            <td class="small text-muted"><?= e(mb_strimwidth((string)$order['alamat_pengiriman'], 0, 60, '...')) ?></td>
-                            <td class="text-end font-monospace small fw-bold"><?= format_rupiah((float)$order['total_harga']) ?></td>
-                            <td class="text-center pe-3">
+                            <td data-label="No. Order" class="ps-3 font-monospace fw-bold text-primary">#<?= (int)$order['id_pesanan'] ?></td>
+                            <td data-label="Pemesan (D4)" class="small fw-semibold"><?= e($order['nama_pemesan'] ?? 'Tamu (Guest)') ?></td>
+                            <td data-label="Alamat Pengiriman" class="small text-muted"><?= e(mb_strimwidth((string)$order['alamat_pengiriman'], 0, 60, '...')) ?></td>
+                            <td data-label="Total" class="text-end font-monospace small fw-bold"><?= format_rupiah((float)$order['total_harga']) ?></td>
+                            <td data-label="Status" class="text-center pe-3">
                                 <span class="badge bg-success-subtle text-success border border-success-subtle small">
                                     <i class="bi bi-check2-all me-1"></i> Selesai
                                 </span>

@@ -550,6 +550,10 @@ body {
 }
 
 .admin-sidebar {
+    /* Variabel Bootstrap Offcanvas (dipakai saat layar < 992px) */
+    --bs-offcanvas-width: 260px;
+    --bs-offcanvas-bg: var(--ad-sidebar);
+    --bs-offcanvas-color: #ffffff;
     width: 260px;
     background-color: var(--ad-sidebar);
     color: #ffffff;
@@ -557,7 +561,6 @@ body {
     display: flex;
     flex-direction: column;
     border-right: 1px solid #1e293b;
-    z-index: 1000;
 }
 
 .admin-sidebar-brand {
@@ -723,11 +726,111 @@ body {
 
 .cursor-pointer { cursor: pointer; }
 
-/* Responsive Adjustments */
+.min-w-0 { min-width: 0; }
+
+/* Ruang kosong di bawah grid menu setinggi floating checkout bar */
+.floating-checkout-spacer { height: 110px; }
+
+/* ==========================================================================
+   9. Responsive Adjustments (992px / 768px / 576px)
+   ========================================================================== */
+
+/* Desktop >= 992px: sidebar admin menempel di kiri (bukan offcanvas).
+   Bootstrap memberi background transparan !important pada .offcanvas-lg di layar besar,
+   sehingga warna sidebar gelap ditegaskan ulang di sini. */
+@media (min-width: 992px) {
+    .admin-sidebar.offcanvas-lg {
+        background-color: var(--ad-sidebar) !important;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        z-index: 1000;
+    }
+}
+
+/* Tablet & ponsel < 992px */
 @media (max-width: 991.98px) {
     .auth-split-hero { display: none; }
     .auth-split-form-wrap { width: 100%; padding: 2rem; }
-    .admin-sidebar { width: 70px; }
-    .admin-sidebar-text { display: none; }
-    .admin-sidebar-brand span { display: none; }
+    /* Sidebar admin menjadi Offcanvas yang dibuka lewat tombol hamburger di topbar */
+    .admin-topbar { padding: 0.75rem 1rem; gap: 0.5rem; }
+}
+
+/* Ponsel & tablet kecil < 768px */
+@media (max-width: 767.98px) {
+    .promo-hero-customer { padding: 1.75rem 1.5rem; border-radius: 16px; }
+    .promo-hero-customer .display-6 { font-size: 1.5rem; }
+    .tracking-stepper-wrap { padding: 1.25rem; }
+    .receipt-digital { padding: 1.25rem; }
+    .admin-main-content > main { padding: 1rem !important; }
+
+    /* Floating checkout bar menempel penuh di bawah layar */
+    .floating-checkout-bar {
+        width: calc(100% - 24px);
+        bottom: 12px;
+        padding: 0.75rem 1rem;
+        border-radius: 16px;
+        gap: 0.75rem;
+    }
+    .floating-checkout-bar .btn { padding: 0.5rem 1rem !important; white-space: nowrap; }
+    .floating-checkout-spacer { height: 96px; }
+
+    /* Tabel 4-7 kolom berubah menjadi kartu bertumpuk; label kolom diambil dari data-label */
+    .tabel-kartu thead { display: none; }
+    .tabel-kartu,
+    .tabel-kartu tbody,
+    .tabel-kartu tr,
+    .tabel-kartu td { display: block; width: 100%; }
+    .tabel-kartu tbody { padding: 0.75rem; }
+    .tabel-kartu tr {
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 14px;
+        padding: 0.5rem 0.9rem;
+        margin-bottom: 0.75rem;
+        box-shadow: var(--shadow-sm);
+    }
+    .tabel-kartu td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.45rem 0 !important;
+        text-align: right !important;
+        border-bottom: 1px dashed var(--border-color);
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    .tabel-kartu td:last-child { border-bottom: 0; }
+    .tabel-kartu td::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        max-width: 45%;
+        text-align: left;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: var(--text-muted);
+    }
+    .tabel-kartu td:not([data-label])::before { content: none; }
+    .tabel-kartu td[colspan] { display: block; text-align: center !important; border-bottom: 0; }
+    .tabel-kartu td > * { min-width: 0; }
+    .tabel-kartu .text-truncate { max-width: 100% !important; white-space: normal; }
+    /* Baris form edit (collapse) tetap tersembunyi sampai dibuka */
+    .tabel-kartu tr.collapse:not(.show) { display: none; }
+}
+
+/* Ponsel kecil < 576px (iPhone SE 375px) */
+@media (max-width: 575.98px) {
+    .auth-split-form-wrap { padding: 1.5rem 1.25rem; }
+    .promo-hero-customer { padding: 1.5rem 1.25rem; }
+    .category-chip { padding: 6px 12px; font-size: 0.8rem; }
+    .food-card-img-wrap { height: 160px; }
+    .floating-checkout-bar .fw-bold.fs-6 { font-size: 0.85rem !important; }
+    .header-driver-hud { padding: 0.6rem 0; }
+    .driver-badge-live { padding: 4px 10px; font-size: 0.72rem; }
+    .brand-merchant .fs-5 { font-size: 1rem !important; }
+    .admin-stat-card { padding: 1.1rem; }
 }

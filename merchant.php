@@ -407,7 +407,7 @@ require_once __DIR__ . '/includes/header.php';
             </div>
             
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table tabel-kartu table-hover align-middle mb-0">
                     <thead class="table-light small text-uppercase text-muted">
                         <tr>
                             <th class="ps-3" style="min-width: 180px;">Hidangan</th>
@@ -428,7 +428,7 @@ require_once __DIR__ . '/includes/header.php';
                                     $is_tersedia = (strcasecmp((string)$m['status_menu'], 'Tersedia') === 0);
                                 ?>
                                 <tr>
-                                    <td class="ps-3 py-2">
+                                    <td data-label="Hidangan" class="ps-3 py-2">
                                         <div class="d-flex align-items-center">
                                             <img src="<?= e(dapatkan_gambar_menu((string)$m['nama_menu'])) ?>" alt="<?= e($m['nama_menu']) ?>" class="rounded-3 me-2" style="width: 40px; height: 40px; object-fit: cover;">
                                             <div>
@@ -437,10 +437,10 @@ require_once __DIR__ . '/includes/header.php';
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="text-end font-monospace small fw-semibold">
+                                    <td data-label="Harga" class="text-end font-monospace small fw-semibold">
                                         <?= format_rupiah((float) $m['harga']) ?>
                                     </td>
-                                    <td class="text-center">
+                                    <td data-label="Status" class="text-center">
                                         <?php if ($is_tersedia): ?>
                                             <span class="badge bg-success-subtle text-success border border-success-subtle small">
                                                 Tersedia
@@ -451,7 +451,7 @@ require_once __DIR__ . '/includes/header.php';
                                             </span>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-center pe-3">
+                                    <td data-label="Aksi Cepat" class="text-center pe-3">
                                         <div class="d-inline-flex gap-1">
                                             <!-- Tombol 1-Click Toggle Status -->
                                             <form method="POST" action="merchant.php" class="d-inline">

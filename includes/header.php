@@ -46,12 +46,15 @@ $peran_aktif = $pengguna_aktif['peran'] ?? null;
          LAYOUT ADMIN: EXECUTIVE BACKOFFICE (SIDEBAR KIRI GELAP #0F172A)
          ===================================================================== -->
     <div class="admin-layout-wrapper">
-        <!-- Sidebar Navigasi Kiri -->
-        <aside class="admin-sidebar shadow-lg">
-            <a href="admin.php" class="admin-sidebar-brand">
-                <i class="bi bi-shield-lock-fill fs-4 text-danger"></i>
-                <span class="admin-sidebar-text">AntarRasa <small class="text-danger fw-bold" style="font-size: 0.65rem;">ADMIN</small></span>
-            </a>
+        <!-- Sidebar Navigasi Kiri: menempel di layar >= 992px, menjadi Offcanvas (hamburger) di bawahnya -->
+        <aside class="admin-sidebar offcanvas-lg offcanvas-start shadow-lg" id="sidebarAdmin" tabindex="-1" aria-label="Navigasi administrator">
+            <div class="d-flex align-items-center justify-content-between">
+                <a href="admin.php" class="admin-sidebar-brand flex-grow-1">
+                    <i class="bi bi-shield-lock-fill fs-4 text-danger"></i>
+                    <span class="admin-sidebar-text">AntarRasa <small class="text-danger fw-bold" style="font-size: 0.65rem;">ADMIN</small></span>
+                </a>
+                <button type="button" class="btn-close btn-close-white me-3 d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebarAdmin" aria-label="Tutup menu navigasi"></button>
+            </div>
             
             <div class="py-3 flex-grow-1">
                 <div class="px-3 mb-2 small text-uppercase text-secondary fw-bold" style="font-size: 0.7rem;">Menu Utama</div>
@@ -86,7 +89,7 @@ $peran_aktif = $pengguna_aktif['peran'] ?? null;
                         <div class="fw-bold small text-white"><?= e($pengguna_aktif['nama_lengkap'] ?? 'Admin') ?></div>
                         <div class="text-secondary small" style="font-size: 0.75rem;">@<?= e($pengguna_aktif['username'] ?? 'admin') ?></div>
                     </div>
-                    <a href="logout.php" class="btn btn-sm btn-outline-danger border-0" title="Keluar">
+                    <a href="logout.php" class="btn btn-sm btn-outline-danger border-0" title="Keluar" aria-label="Keluar dari akun">
                         <i class="bi bi-box-arrow-right fs-5"></i>
                     </a>
                 </div>
@@ -96,16 +99,20 @@ $peran_aktif = $pengguna_aktif['peran'] ?? null;
         <!-- Area Konten Utama Backoffice -->
         <div class="admin-main-content">
             <header class="admin-topbar">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-danger px-2 py-1"><i class="bi bi-shield-check me-1"></i>Backoffice Executive</span>
-                    <span class="text-muted small">&bull; Sistem Pemesanan &amp; Pengantaran AntarRasa</span>
+                <div class="d-flex align-items-center gap-2 min-w-0">
+                    <!-- Hamburger: hanya tampil di bawah 992px untuk membuka sidebar Offcanvas -->
+                    <button class="btn btn-sm btn-outline-secondary d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarAdmin" aria-controls="sidebarAdmin" aria-label="Buka menu navigasi">
+                        <i class="bi bi-list fs-5"></i>
+                    </button>
+                    <span class="badge bg-danger px-2 py-1"><i class="bi bi-shield-check me-1"></i>Backoffice<span class="d-none d-sm-inline"> Executive</span></span>
+                    <span class="text-muted small d-none d-md-inline">&bull; Sistem Pemesanan &amp; Pengantaran AntarRasa</span>
                 </div>
-                <div class="d-flex align-items-center gap-3">
-                    <a href="index.php" class="btn btn-sm btn-outline-secondary" target="_blank">
-                        <i class="bi bi-box-arrow-up-right me-1"></i> Buka Website Customer
+                <div class="d-flex align-items-center gap-2">
+                    <a href="index.php" class="btn btn-sm btn-outline-secondary" target="_blank" aria-label="Buka website customer di tab baru">
+                        <i class="bi bi-box-arrow-up-right"></i><span class="d-none d-sm-inline ms-1">Buka Website Customer</span>
                     </a>
-                    <a href="logout.php" class="btn btn-sm btn-danger fw-semibold">
-                        <i class="bi bi-power me-1"></i> Logout
+                    <a href="logout.php" class="btn btn-sm btn-danger fw-semibold" aria-label="Logout">
+                        <i class="bi bi-power"></i><span class="d-none d-sm-inline ms-1">Logout</span>
                     </a>
                 </div>
             </header>
@@ -151,8 +158,8 @@ $peran_aktif = $pengguna_aktif['peran'] ?? null;
          LAYOUT DRIVER: GOPARTNER / GRABDRIVER COURIER HUD HEADER
          ===================================================================== -->
     <header class="header-driver-hud sticky-top">
-        <div class="container d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-3">
+        <div class="container d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div class="d-flex flex-wrap align-items-center gap-2 gap-sm-3">
                 <div class="bg-success text-white p-2 rounded-circle shadow-sm d-inline-flex">
                     <i class="bi bi-bicycle fs-4"></i>
                 </div>
@@ -160,9 +167,9 @@ $peran_aktif = $pengguna_aktif['peran'] ?? null;
                     <span class="fs-6 fw-bold text-white d-block" style="line-height: 1.1;">AntarRasa Kurir</span>
                     <small class="text-secondary" style="font-size: 0.78rem;">Mitra Driver: <?= e($pengguna_aktif['nama_lengkap'] ?? 'Kurir') ?></small>
                 </div>
-                <div class="driver-badge-live ms-2">
+                <div class="driver-badge-live">
                     <span class="driver-pulse-dot"></span>
-                    STATUS: ONLINE - SIAP MENGANTAR
+                    ONLINE<span class="d-none d-sm-inline">&nbsp;- SIAP MENGANTAR</span>
                 </div>
             </div>
 
@@ -170,8 +177,8 @@ $peran_aktif = $pengguna_aktif['peran'] ?? null;
                 <a href="index.php" class="btn btn-sm btn-outline-light d-none d-md-inline">
                     <i class="bi bi-shop me-1"></i> Cek Resto
                 </a>
-                <a href="logout.php" class="btn btn-sm btn-danger fw-bold">
-                    <i class="bi bi-power me-1"></i> Offline / Logout
+                <a href="logout.php" class="btn btn-sm btn-danger fw-bold" aria-label="Offline dan logout">
+                    <i class="bi bi-power"></i><span class="d-none d-sm-inline ms-1">Offline / Logout</span>
                 </a>
             </div>
         </div>

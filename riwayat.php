@@ -92,7 +92,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
         <div class="table-responsive">
-            <table class="table align-middle table-hover mb-0">
+            <table class="table tabel-kartu align-middle table-hover mb-0">
                 <thead class="table-light small text-uppercase text-muted">
                     <tr>
                         <th class="ps-3" style="width: 100px;">ID Order</th>
@@ -114,12 +114,12 @@ require_once __DIR__ . '/includes/header.php';
                             $info_st = dapatkan_info_status($status);
                         ?>
                         <tr>
-                            <td class="ps-3 fw-bold font-monospace text-primary">#<?= $id ?></td>
-                            <td class="small text-muted">
+                            <td data-label="ID Order" class="ps-3 fw-bold font-monospace text-primary">#<?= $id ?></td>
+                            <td data-label="Waktu Transaksi" class="small text-muted">
                                 <i class="bi bi-calendar3 me-1"></i><?= date('d M Y, H:i', strtotime((string) $order['tanggal_pesanan'])) ?> WIB
                             </td>
                             <?php if ($peran !== 'customer'): ?>
-                                <td>
+                                <td data-label="Pemesan (D4)">
                                     <div class="fw-bold text-dark small">
                                         <?= e($order['nama_pemesan'] ?? 'Tamu (Guest)') ?>
                                     </div>
@@ -128,18 +128,18 @@ require_once __DIR__ . '/includes/header.php';
                                     <?php endif; ?>
                                 </td>
                             <?php endif; ?>
-                            <td class="small text-secondary">
+                            <td data-label="Alamat Pengantaran" class="small text-secondary">
                                 <i class="bi bi-geo-alt-fill text-danger me-1"></i><?= e(mb_strimwidth((string)$order['alamat_pengiriman'], 0, 75, '...')) ?>
                             </td>
-                            <td class="text-end fw-extrabold font-monospace text-danger">
+                            <td data-label="Total Tagihan" class="text-end fw-extrabold font-monospace text-danger">
                                 <?= format_rupiah((float) $order['total_harga']) ?>
                             </td>
-                            <td class="text-center">
+                            <td data-label="Status Alur" class="text-center">
                                 <span class="badge <?= $info_st['class'] ?> px-2 py-1 rounded-pill small">
                                     <i class="bi <?= $info_st['icon'] ?> me-1"></i> <?= e($status) ?>
                                 </span>
                             </td>
-                            <td class="text-center pe-3">
+                            <td data-label="Aksi" class="text-center pe-3">
                                 <?php if ($status === 'Menunggu'): ?>
                                     <a href="pembayaran.php?id=<?= $id ?>" class="btn btn-sm btn-warning rounded-pill px-3 fw-bold text-dark shadow-sm">
                                         <i class="bi bi-wallet2 me-1"></i> Bayar

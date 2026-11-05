@@ -260,6 +260,8 @@ require_once __DIR__ . '/includes/header.php';
 
 <!-- Floating Action Bar untuk Keranjang (Jika ada item aktif) -->
 <?php if ($total_keranjang > 0): ?>
+    <!-- Ruang kosong setinggi floating bar agar kartu menu terakhir tidak tertutup -->
+    <div class="floating-checkout-spacer" aria-hidden="true"></div>
     <div class="floating-checkout-bar">
         <div class="d-flex align-items-center gap-3">
             <div class="bg-white text-danger p-2 rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
@@ -267,7 +269,7 @@ require_once __DIR__ . '/includes/header.php';
             </div>
             <div>
                 <div class="fw-bold fs-6 text-white"><?= $total_keranjang ?> Item di Keranjang &bull; <?= format_rupiah($nominal_keranjang) ?></div>
-                <small class="text-white-50">Lanjutkan untuk memeriksa rincian pesanan & alamat pengantaran</small>
+                <small class="text-white-50 d-none d-sm-block">Lanjutkan untuk memeriksa rincian pesanan &amp; alamat pengantaran</small>
             </div>
         </div>
         <a href="pesanan.php" class="btn btn-light text-danger fw-bold rounded-pill px-4 py-2 shadow-sm d-inline-flex align-items-center gap-2">

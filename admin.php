@@ -342,7 +342,7 @@ require_once __DIR__ . '/includes/header.php';
 
     <!-- Tabel Interaktif Daftar Pengguna -->
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table tabel-kartu table-hover align-middle mb-0">
             <thead class="table-light small text-uppercase text-muted">
                 <tr>
                     <th class="ps-3" style="width: 70px;">ID</th>
@@ -370,8 +370,8 @@ require_once __DIR__ . '/includes/header.php';
                             $is_akun_sendiri = ($id_u === $id_admin_aktif);
                         ?>
                         <tr class="<?= $is_akun_sendiri ? 'table-warning-subtle' : '' ?>">
-                            <td class="ps-3 font-monospace fw-bold text-muted small">#<?= $id_u ?></td>
-                            <td>
+                            <td data-label="ID" class="ps-3 font-monospace fw-bold text-muted small">#<?= $id_u ?></td>
+                            <td data-label="Username &amp; Identitas">
                                 <div class="d-flex align-items-center">
                                     <div class="rounded-circle bg-light p-2 me-2 border text-center d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
                                         <i class="bi <?= $inf_peran['icon'] ?> text-dark"></i>
@@ -387,15 +387,15 @@ require_once __DIR__ . '/includes/header.php';
                                     </div>
                                 </div>
                             </td>
-                            <td>
+                            <td data-label="Nama Lengkap / Mitra">
                                 <div class="fw-semibold text-dark"><?= e($u['nama_lengkap']) ?></div>
                             </td>
-                            <td class="text-center">
+                            <td data-label="Peran (Role)" class="text-center">
                                 <span class="badge <?= $inf_peran['class'] ?> px-2 py-1 shadow-sm rounded-pill" style="font-size: 0.75rem;">
                                     <i class="bi <?= $inf_peran['icon'] ?> me-1"></i><?= e(ucfirst($peran_u)) ?>
                                 </span>
                             </td>
-                            <td class="text-center">
+                            <td data-label="Ganti Peran Cepat" class="text-center">
                                 <!-- Form Ubah Peran Cepat -->
                                 <form method="POST" action="admin.php" class="d-inline-flex align-items-center gap-1">
                                     <?= field_csrf() ?>
@@ -409,7 +409,7 @@ require_once __DIR__ . '/includes/header.php';
                                     </select>
                                 </form>
                             </td>
-                            <td class="text-center pe-3">
+                            <td data-label="Aksi Manajemen" class="text-center pe-3">
                                 <div class="d-inline-flex gap-1 align-items-center">
                                     <!-- Tombol Edit (Membuka Modal Edit) -->
                                     <button 
@@ -474,7 +474,7 @@ require_once __DIR__ . '/includes/header.php';
         <span class="badge bg-light text-dark border"><?= count($daftar_pesanan) ?> Transaksi</span>
     </div>
     <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="table tabel-kartu table-hover align-middle mb-0">
             <thead class="table-light small text-uppercase text-muted">
                 <tr>
                     <th class="ps-3" style="width: 90px;">No. Order</th>
@@ -497,8 +497,8 @@ require_once __DIR__ . '/includes/header.php';
                             $st_info = dapatkan_info_status((string)$o['status_pesanan']);
                         ?>
                         <tr>
-                            <td class="ps-3 font-monospace fw-bold text-primary">#<?= $id_ord ?></td>
-                            <td>
+                            <td data-label="No. Order" class="ps-3 font-monospace fw-bold text-primary">#<?= $id_ord ?></td>
+                            <td data-label="Pemesan Terdaftar (D4)">
                                 <div class="fw-semibold text-dark">
                                     <?= e($o['nama_pemesan'] ?? 'Tamu (Guest)') ?>
                                 </div>
@@ -508,7 +508,7 @@ require_once __DIR__ . '/includes/header.php';
                                     <span class="badge bg-light text-muted border" style="font-size: 0.65rem;">Tanpa Akun</span>
                                 <?php endif; ?>
                             </td>
-                            <td>
+                            <td data-label="Waktu &amp; Alamat Tujuan">
                                 <div class="small text-secondary text-truncate" style="max-width: 260px;" title="<?= e($o['alamat_pengiriman']) ?>">
                                     <i class="bi bi-geo-alt-fill text-danger me-1"></i><?= e($o['alamat_pengiriman']) ?>
                                 </div>
@@ -516,15 +516,15 @@ require_once __DIR__ . '/includes/header.php';
                                     <?= date('d M Y, H:i', strtotime((string)$o['tanggal_pesanan'])) ?> WIB
                                 </div>
                             </td>
-                            <td class="text-end font-monospace fw-bold text-dark">
+                            <td data-label="Total Biaya" class="text-end font-monospace fw-bold text-dark">
                                 <?= format_rupiah((float)$o['total_harga']) ?>
                             </td>
-                            <td class="text-center">
+                            <td data-label="Status Pesanan" class="text-center">
                                 <span class="badge <?= $st_info['class'] ?> px-2 py-1 rounded-pill" style="font-size: 0.75rem;">
                                     <i class="bi <?= $st_info['icon'] ?> me-1"></i><?= e($o['status_pesanan']) ?>
                                 </span>
                             </td>
-                            <td class="text-center pe-3">
+                            <td data-label="Aksi Lacak" class="text-center pe-3">
                                 <a href="status.php?id=<?= $id_ord ?>" class="btn btn-sm btn-outline-primary rounded-pill px-3" title="Lacak Rincian">
                                     <i class="bi bi-compass me-1"></i> Lacak
                                 </a>
