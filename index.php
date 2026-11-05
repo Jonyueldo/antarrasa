@@ -26,9 +26,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
         // Menu yang sudah dihapus (soft delete) diperlakukan seperti tidak ada
         if ($info_menu !== null && (int) $info_menu['is_aktif'] === 1) {
             if (strcasecmp((string) $info_menu['status_menu'], 'Tersedia') === 0) {
-                tambah_ke_keranjang($id_menu_pilihan, $jumlah_pilihan);
+                $jumlah_sebelum = (int) (ambil_keranjang()[$id_menu_pilihan] ?? 0);
+                $jumlah_akhir = tambah_ke_keranjang($id_menu_pilihan, $jumlah_pilihan);
+                $jumlah_ditambah = $jumlah_akhir - $jumlah_sebelum;
                 // Pesan disimpan mentah; escaping dilakukan sekali saat dicetak
-                $pesan_sukses = "Berhasil menambahkan " . $jumlah_pilihan . "x '" . (string) $info_menu['nama_menu'] . "' ke keranjang belanja!";
+                if ($jumlah_ditambah <= 0) {
+                    $pesan_peringatan = "Jumlah '" . (string) $info_menu['nama_menu'] . "' di keranjang sudah mencapai batas maksimal " . BATAS_JUMLAH_PER_MENU . " porsi.";
+                } elseif ($jumlah_ditambah < $jumlah_pilihan) {
+                    $pesan_sukses = "Ditambahkan {$jumlah_ditambah}x '" . (string) $info_menu['nama_menu'] . "' (dibatasi maksimal " . BATAS_JUMLAH_PER_MENU . " porsi per menu).";
+                } else {
+                    $pesan_sukses = "Berhasil menambahkan " . $jumlah_ditambah . "x '" . (string) $info_menu['nama_menu'] . "' ke keranjang belanja!";
+                }
             } else {
                 $pesan_peringatan = "Maaf, menu '" . (string) $info_menu['nama_menu'] . "' saat ini sedang habis.";
             }

@@ -152,7 +152,7 @@ proteksi CSRF, bug logika yang membuat tampilan salah secara faktual, dan file d
 - [x] **34. Gambar menu dari database** (U5) — pakai `menu.gambar_url` plus placeholder lokal di `assets/img/`, jadikan `dapatkan_gambar_menu()` fallback terakhir saja, dan hentikan hotlink Unsplash.
 - [x] **35. Aksesibilitas** (U6) — tambah `aria-label` pada semua tombol ikon, buat `:focus-visible` yang terlihat, dan periksa kontras badge.
 - [x] **36. Paginasi** (L15) — paginasi prosedural dengan `LIMIT ? OFFSET ?` di `riwayat.php`, `admin.php`, dan `merchant.php`.
-- [ ] **37. Klem jumlah di server** (U8) — batasi kuantitas 1 sampai 50 di dalam `tambah_ke_keranjang()`, tidak hanya lewat atribut `max` di HTML.
+- [x] **37. Klem jumlah di server** (U8) — batasi kuantitas 1 sampai 50 di dalam `tambah_ke_keranjang()`, tidak hanya lewat atribut `max` di HTML.
 - [ ] **38. Feedback submit keranjang** (U7) — buat tombol `disabled` plus spinner saat submit memakai JavaScript vanilla kecil, tanpa framework.
 - [ ] **39. Rate limiting login** (S10) — pembatas percobaan berbasis session plus jeda, tanpa tabel baru.
 - [ ] **40. Laporan transaksi admin dan ekspor CSV** — filter rentang tanggal dan status, lalu ekspor memakai `header('Content-Type: text/csv')`.

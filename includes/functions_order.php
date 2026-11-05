@@ -1433,30 +1433,37 @@ function ambil_keranjang(): array
     return $_SESSION['antarrasa_cart'];
 }
 
+/** Batas kuantitas per menu di keranjang (selaras atribut max="50" di form) */
+const BATAS_JUMLAH_PER_MENU = 50;
+
 /**
- * Menambahkan atau menjumlahkan kuantitas menu ke keranjang belanja
+ * Menambahkan atau menjumlahkan kuantitas menu ke keranjang belanja.
+ * Kuantitas DIBATASI di server: 1 s.d. BATAS_JUMLAH_PER_MENU per menu
+ * (atribut max di HTML bisa dilewati dengan mudah oleh klien).
  *
  * @param int $id_menu
  * @param int $jumlah
+ * @return int Jumlah akhir menu tersebut di keranjang (0 jika tidak ditambahkan)
  */
-function tambah_ke_keranjang(int $id_menu, int $jumlah = 1): void
+function tambah_ke_keranjang(int $id_menu, int $jumlah = 1): int
 {
     mulai_sesi();
-    if ($jumlah <= 0) {
-        return;
+    if ($id_menu <= 0 || $jumlah <= 0) {
+        return 0;
     }
     if (!isset($_SESSION['antarrasa_cart']) || !is_array($_SESSION['antarrasa_cart'])) {
         $_SESSION['antarrasa_cart'] = [];
     }
-    if (isset($_SESSION['antarrasa_cart'][$id_menu])) {
-        $_SESSION['antarrasa_cart'][$id_menu] += $jumlah;
-    } else {
-        $_SESSION['antarrasa_cart'][$id_menu] = $jumlah;
-    }
+    $jumlah_lama = (int) ($_SESSION['antarrasa_cart'][$id_menu] ?? 0);
+    $jumlah_baru = min(BATAS_JUMLAH_PER_MENU, $jumlah_lama + min($jumlah, BATAS_JUMLAH_PER_MENU));
+    $_SESSION['antarrasa_cart'][$id_menu] = $jumlah_baru;
+
+    return $jumlah_baru;
 }
 
 /**
  * Mengatur nilai kuantitas tertentu untuk satu menu di keranjang
+ * (0 atau kurang = hapus; lebih dari batas = dijepit ke BATAS_JUMLAH_PER_MENU)
  *
  * @param int $id_menu
  * @param int $jumlah
@@ -1470,7 +1477,7 @@ function perbarui_keranjang(int $id_menu, int $jumlah): void
     if ($jumlah <= 0) {
         unset($_SESSION['antarrasa_cart'][$id_menu]);
     } else {
-        $_SESSION['antarrasa_cart'][$id_menu] = $jumlah;
+        $_SESSION['antarrasa_cart'][$id_menu] = min($jumlah, BATAS_JUMLAH_PER_MENU);
     }
 }
 
