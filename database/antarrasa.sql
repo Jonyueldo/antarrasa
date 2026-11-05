@@ -120,12 +120,14 @@ CREATE TABLE `pengguna` (
 
 LOCK TABLES `pengguna` WRITE;
 /*!40000 ALTER TABLE `pengguna` DISABLE KEYS */;
+-- Akun DEMO khusus repository. Seluruh kata sandi: password123
+-- Hash dibuat ulang dengan password_hash() dan TIDAK berasal dari akun asli anggota tim.
 INSERT INTO `pengguna` VALUES
-(1,'Thiroz','$2y$12$0IYwn9smEq8HF7XhJ.3nGeKwZV6Y8r86LuJGTYVnmfFHeU5r1NReO','Thiroz','customer'),
-(3,'Samudera','$2y$12$RpVeY3jbrSPdf7Lt72EZReMH8YQn9PoIO3q/4XLrvCVzX1Dp.prxC','Samudera ( Mas Sam)','driver'),
-(4,'admin','$2y$12$gzpvkk2umyfZv6aNryPa3OflgMBGLCdmOmoENNYEXXjfNerKF656e','Kennedy ( Admin Antarrasa)','admin'),
-(20,'Raden','$2y$12$hOOYAS3FgTbJaYqQh.UDCOQFSLv3XlocqP1exQmIX0.dKJ2uOVC.e','Warung Bang Tio','merchant'),
-(21,'Fadhil','$2y$12$fO5CVWy6PCrccStDdX93.ey9ol8qWkVXg5JRmgXnLgMLgd1Lbf.dy','Fadhil','customer');
+(1,'customer','$2y$12$UWaKam70LO9FaEwIPFs5v.q5A.GJm3TVQruVcsqXy2nrqEE0w85YC','Pelanggan Demo','customer'),
+(3,'driver','$2y$12$kal.xSQ8JnHiyU83zpDRtexk3lWoVEEugmEZYw2fKdcVQ8dT1pxpS','Kurir Demo','driver'),
+(4,'admin','$2y$12$.q8DFf6LYvnlGheibncZ4eAdFesMeMImm0eSQH85gIvdQEWYbqEcm','Administrator Demo','admin'),
+(20,'merchant','$2y$12$5s.05D5vu0yF4KVBRW1N8uz0ZGVo0ZP4gC.icGhzecl/NO/26ByvO','Warung Demo AntarRasa','merchant'),
+(21,'customer2','$2y$12$eoJwDLsllHU1sYQLypg1aeo3GzJLqJVFiGgw8eI9VpX6/eRNZ7UO6','Pelanggan Demo Kedua','customer');
 /*!40000 ALTER TABLE `pengguna` ENABLE KEYS */;
 UNLOCK TABLES;
 

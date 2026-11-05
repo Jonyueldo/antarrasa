@@ -122,7 +122,7 @@ proteksi CSRF, bug logika yang membuat tampilan salah secara faktual, dan file d
 - [x] **13. Untrack kredensial** (S11) — aktifkan baris `config/database.php` di `.gitignore:6`, jalankan `git rm --cached config/database.php`, dan lengkapi `config/database.example.php`.
 - [x] **14. Konversi dump SQL ke UTF-8** (D1) — simpan ulang `database/antarrasa.sql` sebagai UTF-8 tanpa BOM dengan akhir baris LF. Ini **prasyarat mutlak** agar anggota tim macOS/Linux bisa mengimpor sama sekali. Tambahkan catatan di `README.md`: jangan memakai `mysqldump > file.sql` di PowerShell karena menghasilkan UTF-16, gunakan `mysqldump --result-file=file.sql`.
 - [x] **15. Seragamkan nama tabel huruf kecil** (L14) — ubah 28 query di `functions_order.php`, `functions_auth.php`, `functions_admin.php`, dan `login.php:47` dari huruf besar ke huruf kecil. **Prasyarat kolaborasi macOS.**
-- [ ] **16. Buang hash password asli dari dump** (D2) — ganti seluruh baris `INSERT INTO pengguna` dengan akun demo yang hash-nya dibuat ulang khusus untuk repository.
+- [x] **16. Buang hash password asli dari dump** (D2) — ganti seluruh baris `INSERT INTO pengguna` dengan akun demo yang hash-nya dibuat ulang khusus untuk repository.
 
 ## 4. PRIORITAS MENENGAH — Fitur Inti dan Konsistensi
 
