@@ -1,2 +1,6 @@
 # Dump & skrip SQL selalu LF agar identik di Windows, macOS, dan Linux
 *.sql text eol=lf
+
+# Skrip setup: .sh wajib LF (shell Unix), .bat wajib CRLF (cmd.exe)
+*.sh  text eol=lf
+*.bat text eol=crlf

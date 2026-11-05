@@ -1,3 +1,9 @@
+-- =====================================================================
+-- SNAPSHOT LENGKAP (skema + data demo) hasil generate dari:
+--   database/schema.sql + database/migrations/*.sql + database/seed.sql
+-- PERINGATAN: file ini berisi DROP TABLE, sehingga MENIMPA seluruh data
+-- lokal. Untuk setup harian gunakan database/tools/setup.bat atau setup.sh.
+-- =====================================================================
 -- MariaDB dump 10.19  Distrib 10.11.16-MariaDB, for Win64 (AMD64)
 --
 -- Host: localhost    Database: antarrasa_db
@@ -19,7 +25,7 @@
 -- Current Database: `antarrasa_db`
 --
 
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `antarrasa_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `antarrasa_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci */;
 
 USE `antarrasa_db`;
 

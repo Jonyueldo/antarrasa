@@ -98,7 +98,11 @@ c:\xampp\htdocs\antarrasa\
 │   ├── database.php                # Koneksi MySQLi prosedural + Auto-Migration DataStore D4
 │   └── database.example.php        # Template konfigurasi basis data
 ├── database/
-│   └── antarrasa.sql               # Skema DDL 4 tabel (D1, D2, D3, D4) + data dummy awal
+│   ├── schema.sql                  # DDL terbaru 4 tabel (D1, D2, D3, D4), aman dijalankan ulang
+│   ├── seed.sql                    # Data demo (INSERT IGNORE)
+│   ├── migrations/                 # Migrasi skema bertahap & idempoten (001, 002, ...)
+│   ├── tools/                      # setup.bat (Windows) & setup.sh (macOS/Linux)
+│   └── antarrasa.sql               # Snapshot lengkap hasil generate (reset total via phpMyAdmin)
 ├── includes/
 │   ├── header.php                  # Header adaptif peran (Navbar Customer, Portal Merchant, HUD Driver, Sidebar Admin)
 │   ├── footer.php                  # Penutup layout adaptif & skrip Bootstrap 5.3
@@ -133,15 +137,39 @@ c:\xampp\htdocs\antarrasa\
    cp config/database.example.php config/database.php        (macOS/Linux)
    ```
    Sesuaikan kredensial di dalamnya bila MySQL Anda tidak memakai default XAMPP (`root` tanpa password).
-4. Buat database `antarrasa_db` di `http://localhost/phpmyadmin` (impor file `database/antarrasa.sql` atau biarkan skrip migrasi otomatis berjalan).
-   > **Penting saat membuat ulang dump database:** jangan memakai `mysqldump ... > database/antarrasa.sql`
-   > di PowerShell, karena redirect `>` di PowerShell menyimpan file sebagai **UTF-16** yang tidak bisa
-   > diimpor di macOS/Linux. Gunakan opsi `--result-file` agar hasilnya UTF-8:
-   > ```
-   > C:\xampp\mysql\bin\mysqldump.exe -u root antarrasa_db --result-file=database/antarrasa.sql
-   > ```
+4. Siapkan database dengan skrip setup (membuat database, tabel, migrasi, dan data demo):
+   ```
+   database\tools\setup.bat                 (Windows / XAMPP)
+   sh database/tools/setup.sh               (macOS / Linux)
+   ```
+   Skrip ini **idempoten**: aman dijalankan ulang setiap kali `git pull` membawa migrasi baru,
+   dan **tidak** menghapus atau menimpa data lokal Anda. Tambahkan `--tanpa-seed` jika tidak ingin data demo.
+   Kredensial non-default diatur lewat variabel lingkungan, misalnya `DB_USER=root DB_PASS=rahasia sh database/tools/setup.sh`
+   (Windows: `set DB_PASS=rahasia` sebelum menjalankan `setup.bat`).
 5. Buka peramban di:
    ```
    http://localhost/antarrasa
    ```
 6. Kunjungi `http://localhost/antarrasa/login.php` dan gunakan salah satu tombol demo untuk mengevaluasi alur setiap peran.
+
+### Struktur Folder `database/`
+
+| Berkas | Isi | Kapan dipakai |
+|---|---|---|
+| `schema.sql` | DDL terbaru (`CREATE TABLE IF NOT EXISTS`), tanpa `CREATE DATABASE` / `DROP TABLE` | Dijalankan otomatis oleh skrip setup |
+| `migrations/NNN_*.sql` | Perubahan skema bertahap, idempoten (`ADD COLUMN IF NOT EXISTS`) | Menaikkan versi database lama milik anggota tim |
+| `seed.sql` | Data demo (`INSERT IGNORE`, tidak menimpa data yang ada) | Dijalankan otomatis oleh skrip setup |
+| `antarrasa.sql` | Snapshot lengkap hasil generate (berisi `DROP TABLE`) | Impor sekali lewat phpMyAdmin bila ingin **reset total** |
+| `tools/setup.bat`, `tools/setup.sh` | Skrip setup lintas OS | Setup awal dan setelah setiap `git pull` |
+
+**Aturan perubahan skema untuk tim:**
+1. Jangan pernah mengedit file migrasi yang sudah di-push. Buat file baru dengan nomor berikutnya (misal `005_...sql`).
+2. Tulis migrasi idempoten (`ADD COLUMN IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, `FOREIGN KEY IF NOT EXISTS`).
+3. Perbarui juga `schema.sql` agar mencerminkan kondisi terbaru, lalu perbarui `antarrasa.sql`.
+4. Saat membuat ulang dump, **jangan** memakai `mysqldump ... > file.sql` di PowerShell karena redirect `>`
+   menghasilkan file **UTF-16** yang tidak bisa diimpor di macOS/Linux. Gunakan opsi `--result-file`:
+   ```
+   C:\xampp\mysql\bin\mysqldump.exe -u root --databases antarrasa_db --result-file=database/antarrasa.sql
+   ```
+   Lalu hapus baris pertama `/*M!999999\- enable the sandbox mode */` (ditambahkan MariaDB 10.11+ dan
+   ditolak oleh client MySQL di macOS/Linux).
