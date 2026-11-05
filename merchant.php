@@ -42,13 +42,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
     $harga       = (float) ($_POST['harga'] ?? 0.0);
     $deskripsi   = (string) ($_POST['deskripsi'] ?? '');
     $status_menu = (string) ($_POST['status_menu'] ?? 'Tersedia');
+    $kategori    = (string) ($_POST['kategori'] ?? '');
 
     if (trim($nama_menu) === '' || $harga <= 0.0) {
         $pesan_error = 'Nama hidangan dan harga yang valid (> 0) wajib diisi.';
+    } elseif (!isset(KATEGORI_MENU[$kategori])) {
+        $pesan_error = 'Silakan pilih kategori hidangan yang tersedia.';
     } else {
         // Menu dicatat atas nama merchant yang login (admin: tanpa pemilik)
         $id_merchant_menu = (($pengguna['peran'] ?? '') === 'merchant') ? (int) $pengguna['id_pengguna'] : null;
-        $id_baru = tambah_menu_makanan($conn, $nama_menu, $harga, $deskripsi, $status_menu, $id_merchant_menu);
+        $id_baru = tambah_menu_makanan($conn, $nama_menu, $harga, $deskripsi, $status_menu, $id_merchant_menu, $kategori);
         if ($id_baru !== false) {
             $pesan_sukses = "Hidangan '{$nama_menu}' berhasil ditambahkan ke katalog menu D1!";
         } else {
@@ -334,6 +337,16 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="mb-2">
                     <label for="deskripsi" class="form-label small fw-semibold text-muted text-uppercase">Deskripsi Hidangan</label>
                     <textarea class="form-control" id="deskripsi" name="deskripsi" rows="2" placeholder="Tuliskan komposisi bumbu, rasa, atau catatan hidangan (opsional)..."></textarea>
+                </div>
+
+                <div class="mb-2">
+                    <label for="kategori" class="form-label small fw-semibold text-muted text-uppercase">Kategori <span class="text-danger">*</span></label>
+                    <select class="form-select" id="kategori" name="kategori" required>
+                        <option value="" selected disabled>Pilih kategori hidangan...</option>
+                        <?php foreach (KATEGORI_MENU as $kunci_kat => $info_kat): ?>
+                            <option value="<?= e($kunci_kat) ?>"><?= e($info_kat['label']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <div class="row g-2 mb-3">

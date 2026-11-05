@@ -42,39 +42,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
 // 2. Filter Pencarian & Kategori
 $kata_kunci = isset($_GET['q']) ? trim((string)$_GET['q']) : '';
 $kategori_aktif = isset($_GET['kategori']) ? trim((string)$_GET['kategori']) : 'semua';
+if (!isset(KATEGORI_MENU[$kategori_aktif])) {
+    $kategori_aktif = 'semua';
+}
 
+// Hitungan Tersedia/Habis selalu atas seluruh katalog
 $semua_menu = ambil_semua_menu($conn);
-$daftar_menu = [];
 $jumlah_menu_tersedia = 0;
 $jumlah_menu_habis = 0;
-
 foreach ($semua_menu as $menu) {
     if (strcasecmp((string) $menu['status_menu'], 'Tersedia') === 0) {
         $jumlah_menu_tersedia++;
     } else {
         $jumlah_menu_habis++;
     }
+}
 
-    $cocok = true;
+// Filter kategori dilakukan di SQL (kolom menu.kategori), bukan tebakan dari nama menu
+$menu_kategori = ($kategori_aktif === 'semua') ? $semua_menu : ambil_semua_menu($conn, $kategori_aktif);
+
+$daftar_menu = [];
+foreach ($menu_kategori as $menu) {
     if ($kata_kunci !== '') {
         $haystack = mb_strtolower((string) $menu['nama_menu'] . ' ' . (string) ($menu['deskripsi'] ?? ''));
         if (!str_contains($haystack, mb_strtolower($kata_kunci))) {
-            $cocok = false;
+            continue;
         }
     }
-
-    if ($kategori_aktif !== '' && $kategori_aktif !== 'semua') {
-        $haystack = mb_strtolower((string) $menu['nama_menu']);
-        if ($kategori_aktif === 'ayam' && !str_contains($haystack, 'ayam')) $cocok = false;
-        if ($kategori_aktif === 'nasi' && !str_contains($haystack, 'nasi')) $cocok = false;
-        if ($kategori_aktif === 'mie' && !str_contains($haystack, 'mie')) $cocok = false;
-        if ($kategori_aktif === 'sate' && !str_contains($haystack, 'sate')) $cocok = false;
-        if ($kategori_aktif === 'minuman' && !str_contains($haystack, 'es') && !str_contains($haystack, 'cendol') && !str_contains($haystack, 'teh') && !str_contains($haystack, 'kopi')) $cocok = false;
-    }
-
-    if ($cocok) {
-        $daftar_menu[] = $menu;
-    }
+    $daftar_menu[] = $menu;
 }
 
 $total_keranjang = hitung_jumlah_item_keranjang();
@@ -151,26 +146,12 @@ require_once __DIR__ . '/includes/header.php';
            class="category-chip <?= $kategori_aktif === 'semua' ? 'active' : '' ?>">
             <i class="bi bi-grid"></i> Semua
         </a>
-        <a href="index.php?kategori=ayam<?= $kata_kunci !== '' ? '&q=' . urlencode($kata_kunci) : '' ?>" 
-           class="category-chip <?= $kategori_aktif === 'ayam' ? 'active' : '' ?>">
-            <i class="bi bi-egg-fried"></i> Ayam &amp; Bebek
-        </a>
-        <a href="index.php?kategori=nasi<?= $kata_kunci !== '' ? '&q=' . urlencode($kata_kunci) : '' ?>" 
-           class="category-chip <?= $kategori_aktif === 'nasi' ? 'active' : '' ?>">
-            <i class="bi bi-cup-hot"></i> Nasi Goreng
-        </a>
-        <a href="index.php?kategori=mie<?= $kata_kunci !== '' ? '&q=' . urlencode($kata_kunci) : '' ?>" 
-           class="category-chip <?= $kategori_aktif === 'mie' ? 'active' : '' ?>">
-            <i class="bi bi-water"></i> Olahan Mie
-        </a>
-        <a href="index.php?kategori=sate<?= $kata_kunci !== '' ? '&q=' . urlencode($kata_kunci) : '' ?>" 
-           class="category-chip <?= $kategori_aktif === 'sate' ? 'active' : '' ?>">
-            <i class="bi bi-fire"></i> Sate &amp; Bakaran
-        </a>
-        <a href="index.php?kategori=minuman<?= $kata_kunci !== '' ? '&q=' . urlencode($kata_kunci) : '' ?>" 
-           class="category-chip <?= $kategori_aktif === 'minuman' ? 'active' : '' ?>">
-            <i class="bi bi-cup-straw"></i> Minuman Segar
-        </a>
+        <?php foreach (KATEGORI_MENU as $kunci_kat => $info_kat): ?>
+            <a href="index.php?kategori=<?= e($kunci_kat) ?><?= $kata_kunci !== '' ? '&q=' . e(urlencode($kata_kunci)) : '' ?>"
+               class="category-chip <?= $kategori_aktif === $kunci_kat ? 'active' : '' ?>">
+                <i class="bi <?= e($info_kat['icon']) ?>"></i> <?= e($info_kat['label']) ?>
+            </a>
+        <?php endforeach; ?>
     </div>
 
     <!-- Status Menu Badge -->

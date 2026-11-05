@@ -100,12 +100,12 @@ CREATE TABLE `menu` (
 LOCK TABLES `menu` WRITE;
 /*!40000 ALTER TABLE `menu` DISABLE KEYS */;
 INSERT INTO `menu` VALUES
-(1,20,'Nasi Goreng Spesial AntarRasa',28000.00,'Nasi goreng harum rempah istimewa dengan telur mata sapi, suwiran ayam gurih, acar segar, dan kerupuk renyah.',NULL,NULL,'Tersedia',1),
-(2,20,'Ayam Bakar Madu Taliwang',35000.00,'Ayam bakar bumbu taliwang khas Lombok dengan olesan madu alami, disajikan bersama sambal terasi pedas manis.',NULL,NULL,'Tersedia',1),
-(3,20,'Rendang Daging Sapi Minang',42000.00,'Daging sapi pilihan dimasak perlahan dengan santan kental dan racikan rempah Minang autentik hingga empuk meresap.',NULL,NULL,'Tersedia',1),
-(4,20,'Sate Ayam Madura (10 Tusuk)',30000.00,'Potongan daging ayam empuk dibakar sempurna, disiram saus kacang gurih pekat, kecap manis, dan taburan bawang goreng.',NULL,NULL,'Tersedia',1),
-(5,20,'Mie Goreng Seafood Nusantara',32000.00,'Mie telur kenyal ditumis dengan udang segar, cumi, bakso ikan, sayuran hijau renyah, dan bumbu oriental khas nusantara.',NULL,NULL,'Tersedia',1),
-(6,20,'Es Cendol Durian Segar',18000.00,'Minuman penutup manis legit dengan cendol pandan kenyal, santan kelapa murni, gula aren alami, dan topping durian asli.',NULL,NULL,'Tersedia',1);
+(1,20,'Nasi Goreng Spesial AntarRasa',28000.00,'Nasi goreng harum rempah istimewa dengan telur mata sapi, suwiran ayam gurih, acar segar, dan kerupuk renyah.','nasi',NULL,'Tersedia',1),
+(2,20,'Ayam Bakar Madu Taliwang',35000.00,'Ayam bakar bumbu taliwang khas Lombok dengan olesan madu alami, disajikan bersama sambal terasi pedas manis.','ayam',NULL,'Tersedia',1),
+(3,20,'Rendang Daging Sapi Minang',42000.00,'Daging sapi pilihan dimasak perlahan dengan santan kental dan racikan rempah Minang autentik hingga empuk meresap.','daging',NULL,'Tersedia',1),
+(4,20,'Sate Ayam Madura (10 Tusuk)',30000.00,'Potongan daging ayam empuk dibakar sempurna, disiram saus kacang gurih pekat, kecap manis, dan taburan bawang goreng.','sate',NULL,'Tersedia',1),
+(5,20,'Mie Goreng Seafood Nusantara',32000.00,'Mie telur kenyal ditumis dengan udang segar, cumi, bakso ikan, sayuran hijau renyah, dan bumbu oriental khas nusantara.','mie',NULL,'Tersedia',1),
+(6,20,'Es Cendol Durian Segar',18000.00,'Minuman penutup manis legit dengan cendol pandan kenyal, santan kelapa murni, gula aren alami, dan topping durian asli.','minuman',NULL,'Tersedia',1);
 /*!40000 ALTER TABLE `menu` ENABLE KEYS */;
 UNLOCK TABLES;
 

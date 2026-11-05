@@ -18,22 +18,54 @@ declare(strict_types=1);
 // =====================================================================
 
 /**
- * Mengambil seluruh daftar menu dari DataStore D1 (MENU)
+ * Daftar kategori menu resmi: kunci disimpan di kolom menu.kategori,
+ * label & ikon dipakai chip katalog serta form merchant.
+ */
+const KATEGORI_MENU = [
+    'ayam'    => ['label' => 'Ayam & Bebek',     'icon' => 'bi-egg-fried'],
+    'nasi'    => ['label' => 'Nasi Goreng',      'icon' => 'bi-cup-hot'],
+    'mie'     => ['label' => 'Olahan Mie',       'icon' => 'bi-water'],
+    'sate'    => ['label' => 'Sate & Bakaran',   'icon' => 'bi-fire'],
+    'daging'  => ['label' => 'Daging & Rendang', 'icon' => 'bi-basket'],
+    'minuman' => ['label' => 'Minuman Segar',    'icon' => 'bi-cup-straw'],
+    'lainnya' => ['label' => 'Lainnya',          'icon' => 'bi-three-dots'],
+];
+
+/**
+ * Mengambil daftar menu dari DataStore D1 (MENU), opsional difilter kategori
  *
  * @param mysqli $conn Objek koneksi MySQLi prosedural
+ * @param string|null $kategori Kunci KATEGORI_MENU; null / tidak dikenal = semua kategori
  * @return array Array berisi asosiatif data menu
  */
-function ambil_semua_menu($conn): array
+function ambil_semua_menu($conn, ?string $kategori = null): array
 {
     $daftar_menu = [];
-    $sql = "SELECT id_menu, nama_menu, harga, deskripsi, status_menu FROM menu ORDER BY id_menu ASC";
-    
-    $query = mysqli_query($conn, $sql);
+    $kolom = "id_menu, id_merchant, nama_menu, harga, deskripsi, kategori, gambar_url, status_menu, is_aktif";
+
+    if ($kategori !== null && isset(KATEGORI_MENU[$kategori])) {
+        // Filter kategori lewat prepared statement berparameter
+        $stmt = mysqli_prepare($conn, "SELECT $kolom FROM menu WHERE kategori = ? ORDER BY id_menu ASC");
+        if (!$stmt) {
+            return $daftar_menu;
+        }
+        mysqli_stmt_bind_param($stmt, "s", $kategori);
+        mysqli_stmt_execute($stmt);
+        $hasil = mysqli_stmt_get_result($stmt);
+        if ($hasil !== false) {
+            $daftar_menu = mysqli_fetch_all($hasil, MYSQLI_ASSOC);
+            mysqli_free_result($hasil);
+        }
+        mysqli_stmt_close($stmt);
+        return $daftar_menu;
+    }
+
+    $query = mysqli_query($conn, "SELECT $kolom FROM menu ORDER BY id_menu ASC");
     if ($query !== false) {
         $daftar_menu = mysqli_fetch_all($query, MYSQLI_ASSOC);
         mysqli_free_result($query);
     }
-    
+
     return $daftar_menu;
 }
 
@@ -46,7 +78,7 @@ function ambil_semua_menu($conn): array
  */
 function ambil_menu_by_id($conn, int $id_menu): ?array
 {
-    $sql = "SELECT id_menu, nama_menu, harga, deskripsi, status_menu FROM menu WHERE id_menu = ? LIMIT 1";
+    $sql = "SELECT id_menu, id_merchant, nama_menu, harga, deskripsi, kategori, gambar_url, status_menu, is_aktif FROM menu WHERE id_menu = ? LIMIT 1";
     $stmt = mysqli_prepare($conn, $sql);
     
     if (!$stmt) {
@@ -77,12 +109,16 @@ function ambil_menu_by_id($conn, int $id_menu): ?array
  * @param string $deskripsi
  * @param string $status_menu
  * @param int|null $id_merchant Merchant pemilik menu (null jika ditambahkan admin)
+ * @param string $kategori Kunci KATEGORI_MENU (tidak dikenal = 'lainnya')
  * @return int|false ID menu baru jika berhasil, false jika gagal
  */
-function tambah_menu_makanan($conn, string $nama_menu, float $harga, string $deskripsi, string $status_menu = 'Tersedia', ?int $id_merchant = null): int|false
+function tambah_menu_makanan($conn, string $nama_menu, float $harga, string $deskripsi, string $status_menu = 'Tersedia', ?int $id_merchant = null, string $kategori = 'lainnya'): int|false
 {
     if ($id_merchant !== null && $id_merchant <= 0) {
         $id_merchant = null;
+    }
+    if (!isset(KATEGORI_MENU[$kategori])) {
+        $kategori = 'lainnya';
     }
 
     $nama_bersih = trim($nama_menu);
@@ -95,13 +131,13 @@ function tambah_menu_makanan($conn, string $nama_menu, float $harga, string $des
         $status_menu = 'Tersedia';
     }
 
-    $sql = "INSERT INTO menu (id_merchant, nama_menu, harga, deskripsi, status_menu) VALUES (?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO menu (id_merchant, nama_menu, harga, deskripsi, kategori, status_menu) VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         return false;
     }
 
-    mysqli_stmt_bind_param($stmt, "isdss", $id_merchant, $nama_bersih, $harga, $deskripsi, $status_menu);
+    mysqli_stmt_bind_param($stmt, "isdsss", $id_merchant, $nama_bersih, $harga, $deskripsi, $kategori, $status_menu);
     $eksekusi = mysqli_stmt_execute($stmt);
 
     if (!$eksekusi) {
