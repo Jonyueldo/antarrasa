@@ -95,7 +95,9 @@ unset($_SESSION['info_item_dibuang']);
 
 $detail_items = ambil_detail_pesanan($conn, $id_pesanan);
 $status_info = dapatkan_info_status((string) $pesanan['status_pesanan']);
-$is_sudah_bayar = ($pesanan['status_pesanan'] !== 'Menunggu');
+$is_dibatalkan = ($pesanan['status_pesanan'] === 'Dibatalkan');
+$is_sudah_bayar = !$is_dibatalkan && ($pesanan['status_pesanan'] !== 'Menunggu');
+$is_pemilik = adalah_pemilik_pesanan(ambil_pengguna_login(), $pesanan);
 
 $judul_halaman = 'Pembayaran Pesanan #' . $id_pesanan;
 $tahap_aktif = 3;
@@ -237,7 +239,17 @@ require_once __DIR__ . '/includes/header.php';
 
     <!-- Kolom Kanan: Pilihan Payment Gateway & Konfirmasi Pembayaran -->
     <div class="col-lg-5">
-        <?php if ($is_sudah_bayar): ?>
+        <?php if ($is_dibatalkan): ?>
+            <!-- Pesanan dibatalkan: tidak ada tagihan -->
+            <div class="card shadow-sm border-secondary border-2 rounded-4 text-center p-4 bg-white">
+                <div class="p-3 bg-secondary-subtle text-secondary rounded-circle d-inline-flex mx-auto mb-3">
+                    <i class="bi bi-x-circle-fill fs-1" aria-hidden="true"></i>
+                </div>
+                <h4 class="fw-extrabold text-secondary mb-1">Pesanan Dibatalkan</h4>
+                <p class="text-muted small mb-4">Pesanan #<?= $id_pesanan ?> telah dibatalkan sehingga tidak ada tagihan yang perlu dibayar.</p>
+                <a href="index.php" class="btn btn-primary-custom py-2 rounded-pill fw-bold">Kembali ke Katalog Menu</a>
+            </div>
+        <?php elseif ($is_sudah_bayar): ?>
             <!-- Jika Sudah Bayar -->
             <div class="card shadow-sm border-success border-2 rounded-4 text-center p-4 bg-white">
                 <div class="p-3 bg-success-subtle text-success rounded-circle d-inline-flex mx-auto mb-3">
@@ -357,6 +369,19 @@ require_once __DIR__ . '/includes/header.php';
                         </small>
                     </div>
                 </form>
+
+                <?php if ($is_pemilik): ?>
+                    <!-- Batalkan pesanan sebelum dibayar (diproses oleh status.php) -->
+                    <form method="POST" action="status.php" class="text-center mt-2" data-form-feedback
+                          onsubmit="return confirm('Batalkan pesanan #<?= $id_pesanan ?>? Pesanan yang dibatalkan tidak dapat dipulihkan.');">
+                        <?= field_csrf() ?>
+                        <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
+                        <input type="hidden" name="aksi_pelanggan" value="batalkan">
+                        <button type="submit" class="btn btn-link btn-sm text-danger text-decoration-none">
+                            <i class="bi bi-x-circle me-1" aria-hidden="true"></i>Batalkan pesanan ini
+                        </button>
+                    </form>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
     </div>

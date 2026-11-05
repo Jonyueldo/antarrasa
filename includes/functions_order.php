@@ -677,6 +677,66 @@ function boleh_akses_pesanan(?array $pengguna, array $pesanan): bool
 }
 
 /**
+ * Memeriksa apakah pengguna adalah PEMILIK pesanan (customer pembuatnya, atau tamu
+ * pembuatnya di sesi yang sama). Merchant/driver/admin boleh melihat, tetapi bukan pemilik.
+ *
+ * @param array|null $pengguna
+ * @param array $pesanan
+ * @return bool
+ */
+function adalah_pemilik_pesanan(?array $pengguna, array $pesanan): bool
+{
+    if ($pengguna === null) {
+        return boleh_akses_pesanan(null, $pesanan);
+    }
+    return ($pengguna['peran'] ?? '') === 'customer' && boleh_akses_pesanan($pengguna, $pesanan);
+}
+
+/**
+ * Membatalkan pesanan oleh pemiliknya. Hanya sah dari status 'Menunggu' (belum dibayar);
+ * aturan ini ditegakkan state machine di update_status_pesanan().
+ *
+ * @param mysqli $conn
+ * @param int $id_pesanan
+ * @param array|null $pengguna
+ * @return bool
+ */
+function batalkan_pesanan($conn, int $id_pesanan, ?array $pengguna): bool
+{
+    $pesanan = ambil_pesanan_by_id($conn, $id_pesanan);
+    if ($pesanan === null || !adalah_pemilik_pesanan($pengguna, $pesanan)
+        || (string) $pesanan['status_pesanan'] !== 'Menunggu') {
+        return false;
+    }
+    return update_status_pesanan($conn, $id_pesanan, 'Dibatalkan');
+}
+
+/**
+ * Mengisi ulang keranjang dari rincian pesanan lama ("Pesan Lagi").
+ * Hanya menu yang masih aktif & Tersedia yang dimasukkan; jumlah tetap dibatasi 50/menu.
+ *
+ * @param mysqli $conn
+ * @param int $id_pesanan
+ * @return array ['ditambahkan' => int jumlah jenis menu, 'dilewati' => array nama menu]
+ */
+function isi_ulang_keranjang($conn, int $id_pesanan): array
+{
+    $hasil = ['ditambahkan' => 0, 'dilewati' => []];
+    foreach (ambil_detail_pesanan($conn, $id_pesanan) as $item) {
+        $menu = ambil_menu_by_id($conn, (int) $item['id_menu']);
+        if ($menu === null || (int) $menu['is_aktif'] !== 1
+            || strcasecmp((string) $menu['status_menu'], 'Tersedia') !== 0) {
+            $hasil['dilewati'][] = (string) $item['nama_menu'];
+            continue;
+        }
+        if (tambah_ke_keranjang((int) $item['id_menu'], (int) $item['jumlah']) > 0) {
+            $hasil['ditambahkan']++;
+        }
+    }
+    return $hasil;
+}
+
+/**
  * Mencatat id pesanan tamu ke session agar hanya pembuatnya yang bisa membuka.
  *
  * @param int $id_pesanan
@@ -1807,6 +1867,13 @@ function dapatkan_info_status(string $status): array
             'label' => 'Pesanan Selesai',
             'icon'  => 'bi-check-circle-fill',
             'step'  => 4
+        ],
+        'Dibatalkan' => [
+            'class' => 'bg-secondary text-white',
+            'badge' => 'secondary',
+            'label' => 'Pesanan Dibatalkan',
+            'icon'  => 'bi-x-circle-fill',
+            'step'  => 0
         ],
         default => [
             'class' => 'bg-secondary text-white',

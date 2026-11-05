@@ -119,6 +119,11 @@ foreach ($keranjang as $id_menu => $qty) {
 // Hitung total keseluruhan menggunakan fungsi prosedural
 $total_keseluruhan = hitung_total_harga($items_keranjang);
 
+// Flash sekali tampil dari tombol "Pesan Lagi" di status.php
+$info_pesan_ulang = (isset($_SESSION['info_pesan_ulang']) && is_array($_SESSION['info_pesan_ulang']))
+    ? $_SESSION['info_pesan_ulang'] : null;
+unset($_SESSION['info_pesan_ulang']);
+
 $judul_halaman = 'Keranjang & Checkout Pesanan';
 $tahap_aktif = 2;
 
@@ -149,6 +154,21 @@ require_once __DIR__ . '/includes/header.php';
 </div>
 
 <!-- Tampilkan Pesan Error Validasi jika ada -->
+<?php if ($info_pesan_ulang !== null): ?>
+    <div class="alert <?= (int) $info_pesan_ulang['ditambahkan'] > 0 ? 'alert-success' : 'alert-warning' ?> alert-dismissible fade show shadow-sm rounded-4 mb-4" role="status">
+        <i class="bi bi-arrow-repeat me-2" aria-hidden="true"></i>
+        <?php if ((int) $info_pesan_ulang['ditambahkan'] > 0): ?>
+            <strong><?= (int) $info_pesan_ulang['ditambahkan'] ?> menu</strong> dari pesanan #<?= (int) $info_pesan_ulang['id_pesanan'] ?> dimasukkan kembali ke keranjang.
+        <?php else: ?>
+            Tidak ada menu dari pesanan #<?= (int) $info_pesan_ulang['id_pesanan'] ?> yang masih tersedia.
+        <?php endif; ?>
+        <?php if (!empty($info_pesan_ulang['dilewati'])): ?>
+            <div class="small mt-1">Dilewati karena habis/tidak tersedia: <?= e(implode(', ', $info_pesan_ulang['dilewati'])) ?>.</div>
+        <?php endif; ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Tutup"></button>
+    </div>
+<?php endif; ?>
+
 <?php if (!empty($pesan_error)): ?>
     <div class="alert alert-danger alert-dismissible fade show shadow-sm rounded-4 mb-4" role="alert">
         <div class="d-flex align-items-center mb-1">

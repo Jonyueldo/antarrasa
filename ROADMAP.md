@@ -156,7 +156,7 @@ proteksi CSRF, bug logika yang membuat tampilan salah secara faktual, dan file d
 - [x] **38. Feedback submit keranjang** (U7) — buat tombol `disabled` plus spinner saat submit memakai JavaScript vanilla kecil, tanpa framework.
 - [x] **39. Rate limiting login** (S10) — pembatas percobaan berbasis session plus jeda, tanpa tabel baru.
 - [x] **40. Laporan transaksi admin dan ekspor CSV** — filter rentang tanggal dan status, lalu ekspor memakai `header('Content-Type: text/csv')`.
-- [ ] **41. Batalkan dan pesan ulang** — transisi `Menunggu` ke `Dibatalkan` oleh customer pemilik, serta tombol "Pesan Lagi" yang mengisi ulang keranjang dari `detail_pesanan`. Tambahkan status `Dibatalkan` **hanya** di `dapatkan_info_status()`.
+- [x] **41. Batalkan dan pesan ulang** — transisi `Menunggu` ke `Dibatalkan` oleh customer pemilik, serta tombol "Pesan Lagi" yang mengisi ulang keranjang dari `detail_pesanan`. Tambahkan status `Dibatalkan` **hanya** di `dapatkan_info_status()`.
 - [ ] **42. Menu terlaris dan pendapatan driver** — agregasi `SUM(jumlah) GROUP BY id_menu` untuk merchant, dan total pengantaran per `id_driver` untuk driver.
 - [ ] **43. Klaim tugas eksklusif driver** — sembunyikan pesanan yang `id_driver`-nya sudah terisi driver lain, dan sediakan tab "Tugas Saya" versus "Tersedia".
 - [ ] **44. Detail per-item di riwayat** — tampilkan rincian item di `riwayat.php`, bukan hanya total.

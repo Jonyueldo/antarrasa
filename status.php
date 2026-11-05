@@ -46,6 +46,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_status'])) {
     $pesan_error = "Transisi ke status '{$status_tujuan}' ditolak: status pesanan hanya boleh maju satu tahap (Menunggu → Diproses → Dikirim → Selesai).";
 }
 
+// 1b. Aksi Pelanggan Pemilik: Batalkan pesanan (hanya saat Menunggu) / Pesan Lagi
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_pelanggan'])) {
+    $aksi_pelanggan = (string) $_POST['aksi_pelanggan'];
+    $pengguna_aksi = ambil_pengguna_login();
+    $pesanan_aksi = ambil_pesanan_by_id($conn, $id_pesanan);
+
+    if ($pesanan_aksi === null || !adalah_pemilik_pesanan($pengguna_aksi, $pesanan_aksi)) {
+        // Bukan pemilik: diperlakukan seperti pesanan tidak ada
+        header("Location: status.php?id=" . $id_pesanan);
+        exit;
+    }
+
+    if ($aksi_pelanggan === 'batalkan') {
+        if (batalkan_pesanan($conn, $id_pesanan, $pengguna_aksi)) {
+            header("Location: status.php?id=" . $id_pesanan . "&dibatalkan=1");
+            exit;
+        }
+        $pesan_error = 'Pesanan tidak dapat dibatalkan karena sudah dibayar atau sedang diproses restoran.';
+    } elseif ($aksi_pelanggan === 'pesan_ulang') {
+        $hasil_ulang = isi_ulang_keranjang($conn, $id_pesanan);
+        $_SESSION['info_pesan_ulang'] = [
+            'id_pesanan'  => $id_pesanan,
+            'ditambahkan' => $hasil_ulang['ditambahkan'],
+            'dilewati'    => $hasil_ulang['dilewati'],
+        ];
+        header("Location: pesanan.php");
+        exit;
+    }
+}
+
 // 2. Ambil Informasi Pesanan dari D2 (PESANAN) dan D3 (DETAIL_PESANAN)
 $pesanan = ambil_pesanan_by_id($conn, $id_pesanan);
 
@@ -74,6 +104,8 @@ if ($pesanan === null) {
 $detail_items = ambil_detail_pesanan($conn, $id_pesanan);
 $status_saat_ini = (string) $pesanan['status_pesanan'];
 $status_info = dapatkan_info_status($status_saat_ini);
+$is_pemilik = adalah_pemilik_pesanan(ambil_pengguna_login(), $pesanan);
+$is_dibatalkan = ($status_saat_ini === 'Dibatalkan');
 
 // Ambil data akun driver & merchant langsung dari tabel PENGGUNA (DataStore D4)
 // Kurir = driver yang tercatat di pesanan.id_driver; restoran = pemilik menu pesanan.
@@ -88,6 +120,7 @@ $nomor_step = match ($status_saat_ini) {
     'Diproses' => 2,
     'Dikirim'  => 3,
     'Selesai'  => 4,
+    'Dibatalkan' => 0,
     default    => 1
 };
 
@@ -135,6 +168,16 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 <?php endif; ?>
 
+<?php if ($is_dibatalkan): ?>
+    <div class="alert alert-secondary shadow-sm rounded-4 d-flex align-items-center mb-4" role="status">
+        <i class="bi bi-x-circle-fill fs-4 me-3" aria-hidden="true"></i>
+        <div>
+            <strong>Pesanan #<?= $id_pesanan ?> telah dibatalkan.</strong>
+            <?php if (isset($_GET['dibatalkan'])): ?>Pembatalan berhasil dicatat. Tidak ada tagihan yang perlu dibayar.<?php else: ?>Pesanan ini tidak akan diproses restoran.<?php endif; ?>
+        </div>
+    </div>
+<?php endif; ?>
+
 <!-- Header Status Pelacakan -->
 <div class="card shadow-sm border-0 rounded-4 mb-4 bg-white p-4">
     <div class="row align-items-center gy-3">
@@ -164,7 +207,7 @@ require_once __DIR__ . '/includes/header.php';
         <div class="tracking-stepper-wrap mb-4">
             <h5 class="fw-bold mb-4 pb-2 border-bottom text-dark d-flex align-items-center justify-content-between">
                 <span><i class="bi bi-radar text-danger me-2"></i>Alur Pelacakan Real-Time (Proses 3.0)</span>
-                <span class="badge bg-light text-muted small border">Tahap <?= $nomor_step ?> dari 4</span>
+                <span class="badge bg-light text-muted small border"><?= $is_dibatalkan ? 'Dibatalkan' : 'Tahap ' . $nomor_step . ' dari 4' ?></span>
             </h5>
 
             <div class="pe-2">
@@ -180,7 +223,9 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="small text-muted mb-1"><i class="bi bi-clock me-1"></i>Dipesan <?= e(format_waktu((string) $pesanan['tanggal_pesanan'])) ?><?php if (format_waktu($pesanan['waktu_bayar'] ?? null) !== ''): ?> &bull; Dibayar <?= e(format_waktu($pesanan['waktu_bayar'])) ?><?php if (!empty($pesanan['metode_bayar'])): ?> via <?= e($pesanan['metode_bayar']) ?><?php endif; ?><?php endif; ?></div>
                         <p class="text-muted small mb-0">
                             Pesanan tercatat di <code>PESANAN</code> (D2).
-                            <?php if ($nomor_step === 1): ?>
+                            <?php if ($is_dibatalkan): ?>
+                                <span class="badge bg-secondary-subtle text-secondary ms-1 small">Dibatalkan</span>
+                            <?php elseif ($nomor_step === 1): ?>
                                 <a href="pembayaran.php?id=<?= $id_pesanan ?>" class="btn btn-sm btn-outline-danger rounded-pill ms-2 py-0">Bayar Sekarang</a>
                             <?php else: ?>
                                 <span class="badge bg-success-subtle text-success ms-1 small">Lunas</span>
@@ -381,14 +426,39 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
 
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
                 <a href="riwayat.php" class="btn btn-outline-custom flex-grow-1 rounded-pill small">
                     <i class="bi bi-clock-history me-1"></i> Riwayat Pesanan
                 </a>
-                <a href="index.php" class="btn btn-primary-custom flex-grow-1 rounded-pill small">
-                    <i class="bi bi-bag-plus me-1"></i> Pesan Lagi
-                </a>
+                <?php if ($is_pemilik): ?>
+                    <!-- Pesan Lagi: isi ulang keranjang dari rincian pesanan ini -->
+                    <form method="POST" action="status.php" class="flex-grow-1 d-flex" data-form-feedback>
+                        <?= field_csrf() ?>
+                        <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
+                        <input type="hidden" name="aksi_pelanggan" value="pesan_ulang">
+                        <button type="submit" class="btn btn-primary-custom flex-grow-1 rounded-pill small">
+                            <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> Pesan Lagi
+                        </button>
+                    </form>
+                <?php else: ?>
+                    <a href="index.php" class="btn btn-primary-custom flex-grow-1 rounded-pill small">
+                        <i class="bi bi-bag-plus me-1"></i> Pesan Lagi
+                    </a>
+                <?php endif; ?>
             </div>
+
+            <?php if ($is_pemilik && $status_saat_ini === 'Menunggu'): ?>
+                <!-- Batalkan: hanya pemilik & hanya sebelum dibayar (status Menunggu) -->
+                <form method="POST" action="status.php" class="mt-2" data-form-feedback
+                      onsubmit="return confirm('Batalkan pesanan #<?= $id_pesanan ?>? Pesanan yang dibatalkan tidak dapat dipulihkan.');">
+                    <?= field_csrf() ?>
+                    <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
+                    <input type="hidden" name="aksi_pelanggan" value="batalkan">
+                    <button type="submit" class="btn btn-outline-danger w-100 rounded-pill small">
+                        <i class="bi bi-x-circle me-1" aria-hidden="true"></i> Batalkan Pesanan
+                    </button>
+                </form>
+            <?php endif; ?>
         </div>
     </div>
 </div>
