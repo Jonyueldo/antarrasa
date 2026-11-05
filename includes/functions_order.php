@@ -342,12 +342,14 @@ function hitung_total_harga(array $items): float
  * @param array $pilihan_menu Array berisi [id_menu => jumlah]
  * @param string $alamat Alamat pengiriman yang diisi pelanggan
  * @param array $menu_master Array seluruh menu dari database untuk referensi cepat
- * @return array Hasil validasi ['sukses' => bool, 'pesan_error' => array, 'items_valid' => array]
+ * @return array Hasil validasi ['sukses' => bool, 'pesan_error' => array, 'items_valid' => array,
+ *               'item_dibuang' => array nama menu yang habis/tidak tersedia dan dikeluarkan dari pesanan]
  */
 function validasi_pesanan(array $pilihan_menu, string $alamat, array $menu_master = []): array
 {
     $pesan_error = [];
     $items_valid = [];
+    $item_dibuang = [];
     
     // 1. Validasi Alamat Pengiriman
     $alamat_bersih = trim($alamat);
@@ -375,15 +377,16 @@ function validasi_pesanan(array $pilihan_menu, string $alamat, array $menu_maste
                 continue; // abaikan jika qty 0 atau negatif
             }
 
+            // Item yang tidak lagi tersedia DIBUANG dari pesanan (bukan menggagalkan seluruh checkout)
             if (!isset($lookup_menu[$id])) {
-                $pesan_error[] = "Menu dengan ID #{$id} tidak ditemukan di sistem.";
+                $item_dibuang[] = "Menu #{$id}";
                 continue;
             }
 
             $menu_item = $lookup_menu[$id];
 
             if (strcasecmp((string) $menu_item['status_menu'], 'Tersedia') !== 0) {
-                $pesan_error[] = "Maaf, menu '" . $menu_item['nama_menu'] . "' sedang habis dan tidak dapat dipesan.";
+                $item_dibuang[] = (string) $menu_item['nama_menu'];
                 continue;
             }
 
@@ -399,16 +402,19 @@ function validasi_pesanan(array $pilihan_menu, string $alamat, array $menu_maste
             ];
         }
 
-        if (empty($items_valid) && empty($pesan_error)) {
-            $pesan_error[] = "Tidak ada item menu yang valid dalam keranjang pesanan.";
+        if (empty($items_valid)) {
+            $pesan_error[] = !empty($item_dibuang)
+                ? "Semua menu di keranjang sedang habis atau tidak tersedia: " . implode(', ', $item_dibuang) . ". Silakan pilih menu lain."
+                : "Tidak ada item menu yang valid dalam keranjang pesanan.";
         }
     }
 
     return [
-        'sukses'      => empty($pesan_error),
-        'pesan_error' => $pesan_error,
-        'items_valid' => $items_valid,
-        'alamat'      => $alamat_bersih,
+        'sukses'       => empty($pesan_error),
+        'pesan_error'  => $pesan_error,
+        'items_valid'  => $items_valid,
+        'item_dibuang' => $item_dibuang,
+        'alamat'       => $alamat_bersih,
     ];
 }
 
@@ -420,19 +426,64 @@ function validasi_pesanan(array $pilihan_menu, string $alamat, array $menu_maste
  * @param string $alamat Alamat pengiriman yang sudah divalidasi
  * @param array $detail_items Array rincian item hasil validasi
  * @param int|null $id_pengguna ID pengguna yang membuat pesanan (nullable)
+ * @param array $item_dibuang (keluaran) nama menu yang ternyata habis saat dibaca ulang di dalam transaksi
  * @return int|false Mengembalikan id_pesanan baru jika berhasil, false jika gagal
  */
-function simpan_pesanan($conn, string $alamat, array $detail_items, ?int $id_pengguna = null): int|false
+function simpan_pesanan($conn, string $alamat, array $detail_items, ?int $id_pengguna = null, array &$item_dibuang = []): int|false
 {
+    $item_dibuang = [];
     if (empty($detail_items)) {
         return false;
     }
 
-    $total_harga = hitung_total_harga($detail_items);
     $status_awal = 'Menunggu';
 
     // 1. Mulai Transaksi Prosedural
     mysqli_begin_transaction($conn);
+
+    // 1b. Baca ulang harga & ketersediaan DI DALAM transaksi (FOR UPDATE mengunci baris menu)
+    // agar harga yang disimpan adalah harga terkini, bukan snapshot awal request
+    $stmt_menu = mysqli_prepare($conn, "SELECT nama_menu, harga, status_menu, is_aktif FROM menu WHERE id_menu = ? FOR UPDATE");
+    if (!$stmt_menu) {
+        mysqli_rollback($conn);
+        return false;
+    }
+
+    $items_final = [];
+    foreach ($detail_items as $item) {
+        $id_menu_cek = (int) $item['id_menu'];
+        $jumlah_cek = (int) $item['jumlah'];
+        mysqli_stmt_bind_param($stmt_menu, "i", $id_menu_cek);
+        mysqli_stmt_execute($stmt_menu);
+        $res_menu = mysqli_stmt_get_result($stmt_menu);
+        $menu_kini = ($res_menu !== false) ? mysqli_fetch_assoc($res_menu) : null;
+        if ($res_menu !== false) {
+            mysqli_free_result($res_menu);
+        }
+
+        if (!$menu_kini || (int) $menu_kini['is_aktif'] !== 1
+            || strcasecmp((string) $menu_kini['status_menu'], 'Tersedia') !== 0 || $jumlah_cek <= 0) {
+            $item_dibuang[] = (string) ($menu_kini['nama_menu'] ?? ($item['nama_menu'] ?? "Menu #{$id_menu_cek}"));
+            continue;
+        }
+
+        $harga_kini = (float) $menu_kini['harga'];
+        $items_final[] = [
+            'id_menu'  => $id_menu_cek,
+            'harga'    => $harga_kini,
+            'jumlah'   => $jumlah_cek,
+            'subtotal' => hitung_subtotal($harga_kini, $jumlah_cek),
+        ];
+    }
+    mysqli_stmt_close($stmt_menu);
+
+    if (empty($items_final)) {
+        mysqli_rollback($conn);
+        return false;
+    }
+
+    $detail_items = $items_final;
+    $total_harga = hitung_total_harga($detail_items);
 
     // 2. Insert ke DataStore D2 (PESANAN)
     if ($id_pengguna !== null && $id_pengguna > 0) {

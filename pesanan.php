@@ -59,11 +59,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_pesanan']) && $_
         $id_pengguna_login = isset($_SESSION['id_pengguna']) ? (int) $_SESSION['id_pengguna'] : null;
 
         // Simpan ke D2 (PESANAN) dan D3 (DETAIL_PESANAN) dengan referensi ke PENGGUNA
-        $id_pesanan_baru = simpan_pesanan($conn, $hasil_validasi['alamat'], $hasil_validasi['items_valid'], $id_pengguna_login);
+        $item_habis_transaksi = [];
+        $id_pesanan_baru = simpan_pesanan($conn, $hasil_validasi['alamat'], $hasil_validasi['items_valid'], $id_pengguna_login, $item_habis_transaksi);
 
         if ($id_pesanan_baru !== false) {
             // Bersihkan keranjang belanja setelah berhasil merekam transaksi
             kosongkan_keranjang();
+
+            // Informasikan item yang dikeluarkan karena habis (ditampilkan sekali di pembayaran.php)
+            $semua_dibuang = array_values(array_unique(array_merge($hasil_validasi['item_dibuang'], $item_habis_transaksi)));
+            if (!empty($semua_dibuang)) {
+                $_SESSION['info_item_dibuang'] = $semua_dibuang;
+            }
 
             // Pesanan tamu hanya boleh dibuka oleh sesi pembuatnya
             if ($id_pengguna_login === null) {
@@ -73,6 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_pesanan']) && $_
             // Alihkan ke Halaman Pembayaran (Proses 2.0)
             header("Location: pembayaran.php?id=" . $id_pesanan_baru . "&status_order=berhasil");
             exit;
+        } elseif (!empty($item_habis_transaksi)) {
+            $pesan_error[] = "Menu berikut baru saja habis sehingga pesanan dibatalkan: " . implode(', ', $item_habis_transaksi) . ".";
         } else {
             $pesan_error[] = "Terjadi kegagalan saat menyimpan transaksi ke basis data (Rollback dilakukan).";
         }

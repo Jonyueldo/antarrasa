@@ -88,6 +88,11 @@ if ($pesanan === null) {
     exit;
 }
 
+// Flash sekali tampil: item yang dikeluarkan dari pesanan karena habis saat checkout
+$info_item_dibuang = (isset($_SESSION['info_item_dibuang']) && is_array($_SESSION['info_item_dibuang']))
+    ? $_SESSION['info_item_dibuang'] : [];
+unset($_SESSION['info_item_dibuang']);
+
 $detail_items = ambil_detail_pesanan($conn, $id_pesanan);
 $status_info = dapatkan_info_status((string) $pesanan['status_pesanan']);
 $is_sudah_bayar = ($pesanan['status_pesanan'] !== 'Menunggu');
@@ -131,6 +136,16 @@ require_once __DIR__ . '/includes/header.php';
             <strong>Pesanan Berhasil Dicatat!</strong> Transaksi telah tersimpan di <code>PESANAN</code> (D2) &amp; <code>DETAIL_PESANAN</code> (D3) dengan nomor <strong>#<?= $id_pesanan ?></strong>. Silakan pilih metode pembayaran untuk melanjutkan pemrosesan.
         </div>
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+<?php endif; ?>
+
+<?php if (!empty($info_item_dibuang)): ?>
+    <div class="alert alert-warning shadow-sm rounded-4 d-flex align-items-center mb-4" role="alert">
+        <i class="bi bi-info-circle-fill fs-4 me-3 text-warning"></i>
+        <div>
+            <strong>Sebagian menu dikeluarkan dari pesanan karena sedang habis:</strong>
+            <?= e(implode(', ', $info_item_dibuang)) ?>. Total tagihan di bawah sudah disesuaikan.
+        </div>
     </div>
 <?php endif; ?>
 
