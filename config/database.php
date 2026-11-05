@@ -17,6 +17,11 @@ $db_pass = '';
 $db_name = 'antarrasa_db';
 $db_port = 3306;
 
+// 2b. Mode demo (quick login 1-klik & panel simulasi status untuk admin).
+// Default: hanya aktif jika diakses dari komputer lokal (127.0.0.1 / ::1).
+// Di server publik, ubah menjadi: define('MODE_DEMO', false);
+define('MODE_DEMO', in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true));
+
 // 3. Inisialisasi koneksi prosedural
 $conn = mysqli_connect($db_host, $db_user, $db_pass, $db_name, $db_port);
 

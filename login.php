@@ -76,13 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password_input = '';
 
     if (isset($_POST['aksi']) && $_POST['aksi'] === 'quick_demo') {
-        // Tombol cepat demo: Ambil username akun asli dari tabel PENGGUNA
+        // Tombol cepat demo: HANYA berjalan saat MODE_DEMO aktif
         $role_pilihan = (string) ($_POST['akun_demo'] ?? '');
-        if (isset($akun_peran[$role_pilihan]) && $akun_peran[$role_pilihan] !== null) {
-            $username_input = (string)$akun_peran[$role_pilihan]['username'];
-            $password_input = 'password123';
-        } else {
-            $username_input = $role_pilihan;
+        if (mode_demo_aktif() && isset($akun_peran[$role_pilihan]) && $akun_peran[$role_pilihan] !== null) {
+            $username_input = (string) $akun_peran[$role_pilihan]['username'];
             $password_input = 'password123';
         }
     } else {
@@ -223,7 +220,9 @@ require_once __DIR__ . '/includes/header.php';
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <label for="password" class="form-label small fw-bold text-dark text-uppercase mb-0">Kata Sandi</label>
-                    <span class="text-muted small" style="font-size: 0.72rem;">Default demo: <code>password123</code></span>
+                    <?php if (mode_demo_aktif()): ?>
+                        <span class="text-muted small" style="font-size: 0.72rem;">Default demo: <code>password123</code></span>
+                    <?php endif; ?>
                 </div>
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
@@ -240,7 +239,8 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </form>
 
-        <!-- 4 QUICK-LOGIN DEMO BUTTONS (MURNI MEMBACA DATA ASLI DARI TABEL PENGGUNA D4) -->
+        <!-- 4 QUICK-LOGIN DEMO BUTTONS (hanya tampil saat MODE_DEMO aktif) -->
+        <?php if (mode_demo_aktif()): ?>
         <div class="pt-3 border-top">
             <div class="d-flex align-items-center justify-content-between mb-2">
                 <div class="fw-bold text-dark small">
@@ -375,6 +375,7 @@ require_once __DIR__ . '/includes/header.php';
                 </div>
             </div>
         </div>
+        <?php endif; ?>
     </div>
 </div>
 
