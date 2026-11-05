@@ -123,8 +123,9 @@ function tambah_menu_makanan($conn, string $nama_menu, float $harga, string $des
         $kategori = 'lainnya';
     }
 
+    // Harga wajib > 0, selaras dengan validasi form di merchant.php dan ubah_menu_makanan()
     $nama_bersih = trim($nama_menu);
-    if ($nama_bersih === '' || $harga < 0.0) {
+    if ($nama_bersih === '' || $harga <= 0.0) {
         return false;
     }
 
