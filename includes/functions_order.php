@@ -693,6 +693,51 @@ function ambil_detail_pesanan($conn, int $id_pesanan): array
 }
 
 /**
+ * Mengambil rincian item untuk BANYAK pesanan sekaligus dalam satu query
+ * (menggantikan pemanggilan ambil_detail_pesanan() di dalam loop / N+1 query).
+ *
+ * @param mysqli $conn
+ * @param array $id_pesanan Daftar id pesanan
+ * @return array [id_pesanan => [item, item, ...]]; pesanan tanpa item tidak muncul sebagai kunci
+ */
+function ambil_detail_pesanan_massal($conn, array $id_pesanan): array
+{
+    $id_bersih = array_values(array_unique(array_filter(array_map('intval', $id_pesanan), static fn(int $id): bool => $id > 0)));
+    if (empty($id_bersih)) {
+        return [];
+    }
+
+    // Placeholder dinamis: satu "?" per id, seluruhnya di-bind sebagai integer
+    $placeholder = implode(', ', array_fill(0, count($id_bersih), '?'));
+    $sql = "SELECT d.id_detail, d.id_pesanan, d.id_menu, d.jumlah, d.subtotal, m.nama_menu,
+                   d.harga_satuan AS harga
+            FROM detail_pesanan d
+            JOIN menu m ON d.id_menu = m.id_menu
+            WHERE d.id_pesanan IN ($placeholder)
+            ORDER BY d.id_pesanan ASC, d.id_detail ASC";
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        return [];
+    }
+
+    mysqli_stmt_bind_param($stmt, str_repeat('i', count($id_bersih)), ...$id_bersih);
+    mysqli_stmt_execute($stmt);
+    $hasil = mysqli_stmt_get_result($stmt);
+
+    $kelompok = [];
+    if ($hasil !== false) {
+        while ($baris = mysqli_fetch_assoc($hasil)) {
+            $kelompok[(int) $baris['id_pesanan']][] = $baris;
+        }
+        mysqli_free_result($hasil);
+    }
+
+    mysqli_stmt_close($stmt);
+    return $kelompok;
+}
+
+/**
  * Mengambil daftar pesanan (dengan opsi filter status dan id_pengguna)
  *
  * @param mysqli $conn

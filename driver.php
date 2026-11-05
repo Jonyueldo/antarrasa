@@ -60,6 +60,12 @@ $pesanan_siap_antar  = ambil_semua_pesanan($conn, 25, 'Diproses');
 $pesanan_dalam_antar = ambil_semua_pesanan($conn, 25, 'Dikirim');
 $pesanan_selesai     = ambil_semua_pesanan($conn, 15, 'Selesai');
 
+// Rincian item kedua daftar diambil dalam SATU query (bukan per pesanan di dalam loop)
+$detail_tugas = ambil_detail_pesanan_massal(
+    $conn,
+    array_merge(array_column($pesanan_dalam_antar, 'id_pesanan'), array_column($pesanan_siap_antar, 'id_pesanan'))
+);
+
 // "Tuntas Hari Ini": driver melihat hitungan miliknya sendiri, admin melihat semua driver
 $id_driver_statistik = (($pengguna['peran'] ?? '') === 'driver') ? (int) $pengguna['id_pengguna'] : null;
 $jumlah_selesai_hari_ini = hitung_selesai_hari_ini($conn, $id_driver_statistik);
@@ -163,7 +169,7 @@ require_once __DIR__ . '/includes/header.php';
             <?php foreach ($pesanan_dalam_antar as $order): ?>
                 <?php 
                     $id_o = (int) $order['id_pesanan'];
-                    $rincian_item = ambil_detail_pesanan($conn, $id_o);
+                    $rincian_item = $detail_tugas[$id_o] ?? [];
                 ?>
                 <div class="col-lg-6">
                     <div class="driver-card-job p-4 h-100 d-flex flex-column justify-content-between">
@@ -249,7 +255,7 @@ require_once __DIR__ . '/includes/header.php';
             <?php foreach ($pesanan_siap_antar as $order): ?>
                 <?php 
                     $id_o = (int) $order['id_pesanan'];
-                    $rincian_item = ambil_detail_pesanan($conn, $id_o);
+                    $rincian_item = $detail_tugas[$id_o] ?? [];
                 ?>
                 <div class="col-lg-6">
                     <div class="driver-card-job p-4 h-100 d-flex flex-column justify-content-between">

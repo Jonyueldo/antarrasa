@@ -153,6 +153,9 @@ foreach ($semua_pesanan as $p) {
     }
 }
 
+// Rincian item seluruh antrean diambil dalam SATU query (bukan per pesanan di dalam loop)
+$detail_antrean = ambil_detail_pesanan_massal($conn, array_column($antrean_dapur, 'id_pesanan'));
+
 $nama_merchant_aktif = (string)($pengguna['nama_lengkap'] ?? 'Mitra Restoran');
 $judul_halaman = 'Portal Merchant - ' . $nama_merchant_aktif;
 $tampilkan_stepper = false;
@@ -274,7 +277,7 @@ require_once __DIR__ . '/includes/header.php';
                     <?php 
                         $id_o = (int) $order['id_pesanan'];
                         $st = (string) $order['status_pesanan'];
-                        $items_detail = ambil_detail_pesanan($conn, $id_o);
+                        $items_detail = $detail_antrean[$id_o] ?? [];
                     ?>
                     <div class="kitchen-ticket <?= $st === 'Menunggu' ? 'waiting' : 'cooking' ?>">
                         <!-- Header Tiket -->
