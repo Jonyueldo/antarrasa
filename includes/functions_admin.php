@@ -12,6 +12,23 @@ declare(strict_types=1);
  * - Menggunakan prepared statement mysqli_* prosedural
  */
 
+/** Pesan umum untuk pengguna saat terjadi kegagalan basis data (detail hanya di log server) */
+const PESAN_ERROR_DB_UMUM = 'Terjadi kesalahan pada basis data. Silakan coba lagi atau hubungi administrator sistem.';
+
+/**
+ * Mencatat detail error MySQL ke log server tanpa menampilkannya ke pengguna.
+ *
+ * @param mysqli $conn
+ * @param string $konteks Keterangan operasi yang gagal
+ * @param string $detail Pesan error spesifik (misalnya dari mysqli_stmt_error); kosong = mysqli_error($conn)
+ * @return void
+ */
+function catat_error_db($conn, string $konteks, string $detail = ''): void
+{
+    $pesan = $detail !== '' ? $detail : mysqli_error($conn);
+    error_log('[AntarRasa][DB] ' . $konteks . ': ' . $pesan);
+}
+
 /**
  * Mengambil data seluruh pengguna dari tabel MySQL PENGGUNA (DataStore D4)
  * dengan opsi filter peran.
@@ -126,7 +143,8 @@ function admin_tambah_pengguna($conn, string $username, string $password, string
     $sql_cek = "SELECT id_pengguna FROM `PENGGUNA` WHERE `username` = ? LIMIT 1";
     $stmt_cek = mysqli_prepare($conn, $sql_cek);
     if (!$stmt_cek) {
-        return ['sukses' => false, 'pesan' => 'Gagal mempersiapkan kueri verifikasi username: ' . mysqli_error($conn), 'id_pengguna' => null];
+        catat_error_db($conn, 'admin_tambah_pengguna: prepare cek username');
+        return ['sukses' => false, 'pesan' => PESAN_ERROR_DB_UMUM, 'id_pengguna' => null];
     }
 
     mysqli_stmt_bind_param($stmt_cek, "s", $username_bersih);
@@ -149,16 +167,17 @@ function admin_tambah_pengguna($conn, string $username, string $password, string
     $sql_ins = "INSERT INTO `PENGGUNA` (`username`, `password`, `nama_lengkap`, `peran`) VALUES (?, ?, ?, ?)";
     $stmt_ins = mysqli_prepare($conn, $sql_ins);
     if (!$stmt_ins) {
-        return ['sukses' => false, 'pesan' => 'Gagal mempersiapkan kueri penyimpanan akun: ' . mysqli_error($conn), 'id_pengguna' => null];
+        catat_error_db($conn, 'admin_tambah_pengguna: prepare insert');
+        return ['sukses' => false, 'pesan' => PESAN_ERROR_DB_UMUM, 'id_pengguna' => null];
     }
 
     mysqli_stmt_bind_param($stmt_ins, "ssss", $username_bersih, $password_hash, $nama_bersih, $peran_bersih);
     $eksekusi = mysqli_stmt_execute($stmt_ins);
 
     if (!$eksekusi) {
-        $error_db = mysqli_error($conn);
+        catat_error_db($conn, 'admin_tambah_pengguna: execute insert', mysqli_stmt_error($stmt_ins));
         mysqli_stmt_close($stmt_ins);
-        return ['sukses' => false, 'pesan' => 'Gagal menyimpan akun ke basis data MySQL: ' . $error_db, 'id_pengguna' => null];
+        return ['sukses' => false, 'pesan' => 'Gagal menyimpan akun baru. ' . PESAN_ERROR_DB_UMUM, 'id_pengguna' => null];
     }
 
     $id_baru = mysqli_insert_id($conn);
@@ -219,7 +238,8 @@ function admin_ubah_pengguna(
     $sql_cek = "SELECT id_pengguna FROM `PENGGUNA` WHERE `username` = ? AND `id_pengguna` != ? LIMIT 1";
     $stmt_cek = mysqli_prepare($conn, $sql_cek);
     if (!$stmt_cek) {
-        return ['sukses' => false, 'pesan' => 'Gagal mempersiapkan kueri verifikasi username: ' . mysqli_error($conn)];
+        catat_error_db($conn, 'admin_ubah_pengguna: prepare cek username');
+        return ['sukses' => false, 'pesan' => PESAN_ERROR_DB_UMUM];
     }
 
     mysqli_stmt_bind_param($stmt_cek, "si", $username_bersih, $id_pengguna);
@@ -246,7 +266,8 @@ function admin_ubah_pengguna(
         $sql_update = "UPDATE `PENGGUNA` SET `username` = ?, `password` = ?, `nama_lengkap` = ?, `peran` = ? WHERE `id_pengguna` = ?";
         $stmt_update = mysqli_prepare($conn, $sql_update);
         if (!$stmt_update) {
-            return ['sukses' => false, 'pesan' => 'Gagal mempersiapkan kueri update: ' . mysqli_error($conn)];
+            catat_error_db($conn, 'admin_ubah_pengguna: prepare update + password');
+            return ['sukses' => false, 'pesan' => PESAN_ERROR_DB_UMUM];
         }
 
         mysqli_stmt_bind_param($stmt_update, "ssssi", $username_bersih, $password_hash, $nama_bersih, $peran_bersih, $id_pengguna);
@@ -254,18 +275,21 @@ function admin_ubah_pengguna(
         $sql_update = "UPDATE `PENGGUNA` SET `username` = ?, `nama_lengkap` = ?, `peran` = ? WHERE `id_pengguna` = ?";
         $stmt_update = mysqli_prepare($conn, $sql_update);
         if (!$stmt_update) {
-            return ['sukses' => false, 'pesan' => 'Gagal mempersiapkan kueri update: ' . mysqli_error($conn)];
+            catat_error_db($conn, 'admin_ubah_pengguna: prepare update');
+            return ['sukses' => false, 'pesan' => PESAN_ERROR_DB_UMUM];
         }
 
         mysqli_stmt_bind_param($stmt_update, "sssi", $username_bersih, $nama_bersih, $peran_bersih, $id_pengguna);
     }
 
     $sukses = mysqli_stmt_execute($stmt_update);
-    $affected = mysqli_stmt_affected_rows($stmt_update);
+    if (!$sukses) {
+        catat_error_db($conn, 'admin_ubah_pengguna: execute update', mysqli_stmt_error($stmt_update));
+    }
     mysqli_stmt_close($stmt_update);
 
     if (!$sukses) {
-        return ['sukses' => false, 'pesan' => 'Gagal memperbarui data pengguna di basis data MySQL: ' . mysqli_error($conn)];
+        return ['sukses' => false, 'pesan' => 'Gagal memperbarui data pengguna. ' . PESAN_ERROR_DB_UMUM];
     }
 
     // Jika yang diubah adalah akun Admin yang sedang login saat ini, sinkronkan sesi
@@ -330,7 +354,8 @@ function admin_hapus_pengguna($conn, int $id_pengguna, int $id_admin_aktif): arr
     // 2. HAPUS PENGGUNA SECARA PERMANEN DARI TABEL PENGGUNA (D4)
     $stmt_del = mysqli_prepare($conn, "DELETE FROM `PENGGUNA` WHERE `id_pengguna` = ?");
     if (!$stmt_del) {
-        return ['sukses' => false, 'pesan' => 'Gagal mempersiapkan kueri penghapusan akun: ' . mysqli_error($conn)];
+        catat_error_db($conn, 'admin_hapus_pengguna: prepare delete');
+        return ['sukses' => false, 'pesan' => PESAN_ERROR_DB_UMUM];
     }
 
     mysqli_stmt_bind_param($stmt_del, "i", $id_pengguna);

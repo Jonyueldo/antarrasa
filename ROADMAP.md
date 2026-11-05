@@ -116,7 +116,7 @@ proteksi CSRF, bug logika yang membuat tampilan salah secara faktual, dan file d
 - [x] **7. Tutup open redirect** (S6) — di `login.php:19` tolak `ref` yang dimulai dengan dua garis miring atau mengandung tanda titik dua; cukup izinkan daftar putih nama file `.php` lokal.
 - [x] **8. Kunci mode demo** (S8) — tambah konstanta `MODE_DEMO` di `config/database.example.php` dengan default `false` di luar localhost. Blok `quick_demo` (`login.php:79-88`) dan kartu demo hanya jalan saat `MODE_DEMO === true`.
 - [x] **9. Perbaiki nilai balik `affected_rows`** (L1) — di `update_status_pesanan()` dan `ubah_status_menu()`, periksa eksistensi baris lebih dulu lalu uji `$affected > 0`.
-- [ ] **10. Berhenti membocorkan error database** (S9) — ganti `mysqli_error($conn)` di 8 lokasi `functions_admin.php` dengan pesan umum, dan kirim detailnya ke `error_log()`.
+- [x] **10. Berhenti membocorkan error database** (S9) — ganti `mysqli_error($conn)` di 8 lokasi `functions_admin.php` dengan pesan umum, dan kirim detailnya ke `error_log()`.
 - [ ] **11. Proteksi admin terakhir dan diri sendiri** (S12) — di `functions_admin.php`, tolak perubahan peran atau penghapusan bila akan menyisakan 0 admin, dan tolak admin menurunkan peran dirinya sendiri.
 - [ ] **12. Escape output yang terlewat** (S13) — bungkus `$pesan_sukses` dan `$pesan_peringatan` dengan `e()` di `index.php:128,138`, lalu hentikan pemanggilan `e()` di hulu agar tidak dobel.
 - [ ] **13. Untrack kredensial** (S11) — aktifkan baris `config/database.php` di `.gitignore:6`, jalankan `git rm --cached config/database.php`, dan lengkapi `config/database.example.php`.
