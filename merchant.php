@@ -29,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
         if ($sukses) {
             $pesan_sukses = "Pesanan #{$id_pesanan_terima} diterima! Dapur mulai memasak hidangan.";
         } else {
-            $pesan_error = "Gagal memperbarui status pesanan menjadi 'Diproses'.";
+            $pesan_error = "Gagal menerima pesanan #{$id_pesanan_terima}: pesanan tidak ditemukan atau statusnya sudah bukan 'Menunggu'.";
         }
     }
 }

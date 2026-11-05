@@ -565,18 +565,44 @@ function ambil_semua_pesanan($conn, int $limit = 50, ?string $status_filter = nu
     return $daftar;
 }
 
+/** Daftar seluruh status pesanan yang sah (selaras dengan CHECK chk_status_pesanan) */
+const STATUS_PESANAN_VALID = ['Menunggu', 'Diproses', 'Dikirim', 'Selesai', 'Dibatalkan'];
+
+/**
+ * State machine status pesanan. Alur sah:
+ *   Menunggu -> Diproses -> Dikirim -> Selesai
+ *   Menunggu -> Dibatalkan
+ * Status tidak boleh mundur maupun melompat tahap.
+ *
+ * @param string $dari Status saat ini
+ * @param string $ke Status tujuan
+ * @return bool
+ */
+function transisi_status_valid(string $dari, string $ke): bool
+{
+    $alur = [
+        'Menunggu'   => ['Diproses', 'Dibatalkan'],
+        'Diproses'   => ['Dikirim'],
+        'Dikirim'    => ['Selesai'],
+        'Selesai'    => [],
+        'Dibatalkan' => [],
+    ];
+
+    return in_array($ke, $alur[$dari] ?? [], true);
+}
+
 /**
  * Memperbarui kolom status_pesanan pada DataStore D2 (PESANAN)
+ * dengan validasi state machine (lihat transisi_status_valid()).
  *
  * @param mysqli $conn
  * @param int $id_pesanan
- * @param string $status_baru ('Menunggu', 'Diproses', 'Dikirim', 'Selesai')
+ * @param string $status_baru ('Menunggu', 'Diproses', 'Dikirim', 'Selesai', 'Dibatalkan')
  * @return bool
  */
 function update_status_pesanan($conn, int $id_pesanan, string $status_baru): bool
 {
-    $status_valid = ['Menunggu', 'Diproses', 'Dikirim', 'Selesai'];
-    if (!in_array($status_baru, $status_valid, true)) {
+    if (!in_array($status_baru, STATUS_PESANAN_VALID, true)) {
         return false;
     }
 
@@ -586,19 +612,28 @@ function update_status_pesanan($conn, int $id_pesanan, string $status_baru): boo
         return false;
     }
 
-    // Status sudah sama: tidak ada yang perlu diubah (MySQL akan memberi affected_rows = 0)
-    if ((string) $pesanan['status_pesanan'] === $status_baru) {
+    $status_lama = (string) $pesanan['status_pesanan'];
+
+    // Status sudah sama: tidak ada yang perlu diubah (misalnya form terkirim ulang)
+    if ($status_lama === $status_baru) {
         return true;
     }
 
-    $sql = "UPDATE pesanan SET status_pesanan = ? WHERE id_pesanan = ?";
+    // Tolak transisi mundur atau melompat tahap
+    if (!transisi_status_valid($status_lama, $status_baru)) {
+        return false;
+    }
+
+    // Syarat status lama di WHERE mencegah race condition: jika pihak lain
+    // sudah mengubah status lebih dulu, affected_rows = 0 dan update ditolak
+    $sql = "UPDATE pesanan SET status_pesanan = ? WHERE id_pesanan = ? AND status_pesanan = ?";
     $stmt = mysqli_prepare($conn, $sql);
 
     if (!$stmt) {
         return false;
     }
 
-    mysqli_stmt_bind_param($stmt, "si", $status_baru, $id_pesanan);
+    mysqli_stmt_bind_param($stmt, "sis", $status_baru, $id_pesanan, $status_lama);
     $sukses = mysqli_stmt_execute($stmt);
     $affected = mysqli_stmt_affected_rows($stmt);
     mysqli_stmt_close($stmt);

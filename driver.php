@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_driver'])) {
         if ($sukses) {
             $pesan_sukses = "Status pesanan #{$id_pesanan} berhasil diperbarui menjadi '{$status_tujuan}'!";
         } else {
-            $pesan_error = "Gagal memperbarui status pengantaran di database.";
+            $pesan_error = "Gagal memperbarui pesanan #{$id_pesanan}: alur status tidak valid (harus Diproses → Dikirim → Selesai) atau pesanan sudah diperbarui pihak lain.";
         }
     }
 }

@@ -37,17 +37,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_status'])) {
     }
 
     $status_tujuan = (string) ($_POST['status_tujuan'] ?? '');
-    $valid_transisi = ['Menunggu', 'Diproses', 'Dikirim', 'Selesai'];
-
-    if (in_array($status_tujuan, $valid_transisi, true)) {
-        $sukses = update_status_pesanan($conn, $id_pesanan, $status_tujuan);
-        if ($sukses) {
-            header("Location: status.php?id=" . $id_pesanan . "&update_sukses=" . urlencode($status_tujuan));
-            exit;
-        } else {
-            $pesan_error = "Gagal memperbarui status pengiriman di database.";
-        }
+    // Validasi alur dilakukan oleh state machine di dalam update_status_pesanan()
+    $sukses = update_status_pesanan($conn, $id_pesanan, $status_tujuan);
+    if ($sukses) {
+        header("Location: status.php?id=" . $id_pesanan . "&update_sukses=" . urlencode($status_tujuan));
+        exit;
     }
+    $pesan_error = "Transisi ke status '{$status_tujuan}' ditolak: status pesanan hanya boleh maju satu tahap (Menunggu → Diproses → Dikirim → Selesai).";
 }
 
 // 2. Ambil Informasi Pesanan dari D2 (PESANAN) dan D3 (DETAIL_PESANAN)
@@ -261,7 +257,7 @@ require_once __DIR__ . '/includes/header.php';
                     <input type="hidden" name="aksi_status" value="1">
                     <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
                     <input type="hidden" name="status_tujuan" value="Menunggu">
-                    <button type="submit" class="btn btn-sm <?= $status_saat_ini === 'Menunggu' ? 'btn-warning fw-bold' : 'btn-outline-secondary' ?>">
+                    <button type="submit" class="btn btn-sm <?= $status_saat_ini === 'Menunggu' ? 'btn-warning fw-bold' : 'btn-outline-secondary' ?>" <?= transisi_status_valid($status_saat_ini, 'Menunggu') ? '' : 'disabled' ?>>
                         <i class="bi bi-hourglass me-1"></i> 1. Menunggu
                     </button>
                 </form>
@@ -271,7 +267,7 @@ require_once __DIR__ . '/includes/header.php';
                     <input type="hidden" name="aksi_status" value="1">
                     <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
                     <input type="hidden" name="status_tujuan" value="Diproses">
-                    <button type="submit" class="btn btn-sm <?= $status_saat_ini === 'Diproses' ? 'btn-info fw-bold text-dark' : 'btn-outline-info text-dark' ?>">
+                    <button type="submit" class="btn btn-sm <?= $status_saat_ini === 'Diproses' ? 'btn-info fw-bold text-dark' : 'btn-outline-info text-dark' ?>" <?= transisi_status_valid($status_saat_ini, 'Diproses') ? '' : 'disabled' ?>>
                         <i class="bi bi-fire me-1"></i> 2. Diproses Resto
                     </button>
                 </form>
@@ -281,7 +277,7 @@ require_once __DIR__ . '/includes/header.php';
                     <input type="hidden" name="aksi_status" value="1">
                     <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
                     <input type="hidden" name="status_tujuan" value="Dikirim">
-                    <button type="submit" class="btn btn-sm <?= $status_saat_ini === 'Dikirim' ? 'btn-primary fw-bold' : 'btn-outline-primary' ?>">
+                    <button type="submit" class="btn btn-sm <?= $status_saat_ini === 'Dikirim' ? 'btn-primary fw-bold' : 'btn-outline-primary' ?>" <?= transisi_status_valid($status_saat_ini, 'Dikirim') ? '' : 'disabled' ?>>
                         <i class="bi bi-bicycle me-1"></i> 3. Dikirim Driver
                     </button>
                 </form>
@@ -291,7 +287,7 @@ require_once __DIR__ . '/includes/header.php';
                     <input type="hidden" name="aksi_status" value="1">
                     <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
                     <input type="hidden" name="status_tujuan" value="Selesai">
-                    <button type="submit" class="btn btn-sm <?= $status_saat_ini === 'Selesai' ? 'btn-success fw-bold' : 'btn-outline-success' ?>">
+                    <button type="submit" class="btn btn-sm <?= $status_saat_ini === 'Selesai' ? 'btn-success fw-bold' : 'btn-outline-success' ?>" <?= transisi_status_valid($status_saat_ini, 'Selesai') ? '' : 'disabled' ?>>
                         <i class="bi bi-check2-all me-1"></i> 4. Selesai
                     </button>
                 </form>
