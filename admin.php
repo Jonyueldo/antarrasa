@@ -154,8 +154,20 @@ $rekap_peran = hitung_rekap_peran_pengguna($conn);
 // Ambil daftar pengguna (dengan opsi filter peran)
 $daftar_pengguna = ambil_semua_pengguna($conn, $filter_peran);
 
-// Ambil riwayat pesanan (D2 JOIN D4)
-$daftar_pesanan = ambil_semua_pesanan($conn, 30);
+// Ambil riwayat pesanan (D2 JOIN D4) dengan paginasi LIMIT ? OFFSET ?
+$paginasi_pesanan = hitung_paginasi(
+    hitung_pesanan($conn),
+    15,
+    isset($_GET['hal_pesanan']) ? (int) $_GET['hal_pesanan'] : 1
+);
+$daftar_pesanan = ambil_semua_pesanan($conn, $paginasi_pesanan['per_halaman'], null, null, $paginasi_pesanan['offset']);
+
+// Parameter GET yang dipertahankan saat berpindah halaman tabel pesanan
+$param_paginasi_admin = array_filter([
+    'filter_peran' => $filter_peran,
+    'dari'         => $statistik['dari'] ?? null,
+    'sampai'       => $statistik['sampai'] ?? null,
+], static fn($v): bool => $v !== null && $v !== '');
 
 $judul_halaman = 'Panel Administrator - Executive Backoffice';
 $tampilkan_stepper = false;
@@ -471,7 +483,7 @@ require_once __DIR__ . '/includes/header.php';
             </h5>
             <div class="text-muted small">Memantau seluruh transaksi pemesanan yang terhubung dengan akun pengguna</div>
         </div>
-        <span class="badge bg-light text-dark border"><?= count($daftar_pesanan) ?> Transaksi</span>
+        <span class="badge bg-light text-dark border"><?= (int) $paginasi_pesanan['total'] ?> Transaksi</span>
     </div>
     <div class="table-responsive">
         <table class="table tabel-kartu table-hover align-middle mb-0">
@@ -535,6 +547,7 @@ require_once __DIR__ . '/includes/header.php';
             </tbody>
         </table>
     </div>
+    <?= render_paginasi($paginasi_pesanan, 'admin.php', 'hal_pesanan', $param_paginasi_admin, 'tabelSemuaPesanan') ?>
 </div>
 
 <!-- =====================================================================

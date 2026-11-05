@@ -158,10 +158,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Ambil data menu dan pesanan dapur
 $daftar_menu = ambil_semua_menu($conn);
-$semua_pesanan = ambil_semua_pesanan($conn, 40);
 
-// Pisahkan pesanan aktif dapur (Menunggu & Diproses)
-$antrean_dapur = [];
+// Antrean dapur (Menunggu & Diproses) diambil langsung dengan filter status + paginasi
+// LIMIT ? OFFSET ? (sebelumnya: 40 pesanan terakhir lalu disaring, sehingga antrean terpotong diam-diam)
+$status_antrean = ['Menunggu', 'Diproses'];
+$paginasi_antrean = hitung_paginasi(
+    hitung_pesanan($conn, $status_antrean),
+    10,
+    isset($_GET['hal']) ? (int) $_GET['hal'] : 1
+);
+$antrean_dapur = ambil_semua_pesanan($conn, $paginasi_antrean['per_halaman'], $status_antrean, null, $paginasi_antrean['offset']);
+
+// KPI total riwayat order dihitung dengan COUNT(*) (sebelumnya mentok di 40 baris)
+$total_riwayat_order = hitung_pesanan($conn);
+
 // "Tuntas Hari Ini" dihitung dari tanggal server, bukan dari N baris terakhir
 $pesanan_selesai_hari_ini = hitung_selesai_hari_ini($conn);
 $total_menu_tersedia = 0;
@@ -169,13 +179,6 @@ $total_menu_tersedia = 0;
 foreach ($daftar_menu as $m) {
     if (strcasecmp((string)$m['status_menu'], 'Tersedia') === 0) {
         $total_menu_tersedia++;
-    }
-}
-
-foreach ($semua_pesanan as $p) {
-    $st = (string) $p['status_pesanan'];
-    if ($st === 'Menunggu' || $st === 'Diproses') {
-        $antrean_dapur[] = $p;
     }
 }
 
@@ -197,7 +200,7 @@ require_once __DIR__ . '/includes/header.php';
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small fw-semibold text-uppercase">Antrean Dapur Aktif</span>
-                    <h3 class="fw-extrabold text-dark mb-0 mt-1"><?= count($antrean_dapur) ?></h3>
+                    <h3 class="fw-extrabold text-dark mb-0 mt-1"><?= (int) $paginasi_antrean['total'] ?></h3>
                 </div>
                 <div class="p-3 rounded-circle" style="background-color: #fef3c7; color: #d97706;">
                     <i class="bi bi-fire fs-4"></i>
@@ -245,7 +248,7 @@ require_once __DIR__ . '/includes/header.php';
             <div class="d-flex align-items-center justify-content-between">
                 <div>
                     <span class="text-muted small fw-semibold text-uppercase">Total Riwayat Order</span>
-                    <h3 class="fw-extrabold text-dark mb-0 mt-1"><?= count($semua_pesanan) ?></h3>
+                    <h3 class="fw-extrabold text-dark mb-0 mt-1"><?= $total_riwayat_order ?></h3>
                 </div>
                 <div class="bg-info-subtle text-info p-3 rounded-circle">
                     <i class="bi bi-receipt-cutoff fs-4"></i>
@@ -285,7 +288,7 @@ require_once __DIR__ . '/includes/header.php';
                 <small class="text-muted">Tiket pesanan yang harus dimasak oleh koki</small>
             </div>
             <span class="badge bg-warning text-dark fw-bold px-3 py-2 rounded-pill shadow-sm">
-                <?= count($antrean_dapur) ?> Tiket Perlu Dikerjakan
+                <?= (int) $paginasi_antrean['total'] ?> Tiket Perlu Dikerjakan
             </span>
         </div>
 
@@ -365,6 +368,7 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                 <?php endforeach; ?>
             </div>
+            <?= render_paginasi($paginasi_antrean, 'merchant.php', 'hal') ?>
         <?php endif; ?>
     </div>
 

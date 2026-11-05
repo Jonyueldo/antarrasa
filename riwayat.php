@@ -25,11 +25,19 @@ if ($peran === 'customer') {
         header('Location: login.php?pesan=akses_ditolak');
         exit;
     }
-    $daftar_pesanan = ambil_semua_pesanan($conn, 50, null, $id_user);
+    $filter_pemilik = $id_user;
 } else {
     // Merchant, driver, dan admin melihat seluruh transaksi
-    $daftar_pesanan = ambil_semua_pesanan($conn, 50, null, null);
+    $filter_pemilik = null;
 }
+
+// Paginasi LIMIT ? OFFSET ? (sebelumnya terpotong diam-diam di 50 baris)
+$paginasi = hitung_paginasi(
+    hitung_pesanan($conn, null, $filter_pemilik),
+    10,
+    isset($_GET['hal']) ? (int) $_GET['hal'] : 1
+);
+$daftar_pesanan = ambil_semua_pesanan($conn, $paginasi['per_halaman'], null, $filter_pemilik, $paginasi['offset']);
 
 $judul_halaman = ($peran === 'customer') ? 'Pesanan Saya' : 'Riwayat Transaksi Pesanan';
 $tampilkan_stepper = false;
@@ -86,7 +94,7 @@ require_once __DIR__ . '/includes/header.php';
     <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-5 bg-white">
         <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <div class="fw-bold text-dark fs-6">
-                <i class="bi bi-receipt text-danger me-2"></i>Daftar Transaksi (<?= count($daftar_pesanan) ?> Pesanan)
+                <i class="bi bi-receipt text-danger me-2"></i>Daftar Transaksi (<?= (int) $paginasi['total'] ?> Pesanan)
             </div>
             <span class="badge bg-light text-secondary border font-monospace">DataStore D2 &amp; D4</span>
         </div>
@@ -155,6 +163,7 @@ require_once __DIR__ . '/includes/header.php';
                 </tbody>
             </table>
         </div>
+        <?= render_paginasi($paginasi, 'riwayat.php', 'hal') ?>
     </div>
 <?php endif; ?>
 

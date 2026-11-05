@@ -775,46 +775,84 @@ function ambil_detail_pesanan_massal($conn, array $id_pesanan): array
 }
 
 /**
- * Mengambil daftar pesanan (dengan opsi filter status dan id_pengguna)
+ * Menyusun klausa WHERE filter pesanan (status tunggal / daftar status, dan id_pengguna)
  *
- * @param mysqli $conn
- * @param int $limit
- * @param string|null $status_filter
+ * @param string|array|null $status_filter 'Diproses' atau ['Menunggu', 'Diproses']
  * @param int|null $id_pengguna
- * @return array
+ * @return array{0: string, 1: string, 2: array} [klausa WHERE (boleh kosong), tipe bind, nilai bind]
  */
-function ambil_semua_pesanan($conn, int $limit = 50, ?string $status_filter = null, ?int $id_pengguna = null): array
+function klausa_filter_pesanan(string|array|null $status_filter, ?int $id_pengguna): array
 {
-    $daftar = [];
-    $sql = "SELECT p.id_pesanan, p.id_pengguna, p.tanggal_pesanan, p.alamat_pengiriman, 
-                   p.total_harga, p.status_pesanan,
-                   u.nama_lengkap AS nama_pemesan, u.username AS username_pemesan 
-            FROM pesanan p 
-            LEFT JOIN pengguna u ON p.id_pengguna = u.id_pengguna";
+    $kondisi = [];
+    $nilai = [];
+    $tipe = '';
 
-    $conditions = [];
-    $params = [];
-    $types = "";
-
-    if ($status_filter !== null && $status_filter !== '') {
-        $conditions[] = "p.status_pesanan = ?";
-        $params[] = $status_filter;
-        $types .= "s";
+    $daftar_status = is_array($status_filter) ? $status_filter : (($status_filter ?? '') !== '' ? [$status_filter] : []);
+    $daftar_status = array_values(array_filter($daftar_status, static fn($s): bool => in_array($s, STATUS_PESANAN_VALID, true)));
+    if (!empty($daftar_status)) {
+        $kondisi[] = 'p.status_pesanan IN (' . implode(', ', array_fill(0, count($daftar_status), '?')) . ')';
+        array_push($nilai, ...$daftar_status);
+        $tipe .= str_repeat('s', count($daftar_status));
     }
 
     if ($id_pengguna !== null && $id_pengguna > 0) {
-        $conditions[] = "p.id_pengguna = ?";
-        $params[] = $id_pengguna;
-        $types .= "i";
+        $kondisi[] = 'p.id_pengguna = ?';
+        $nilai[] = $id_pengguna;
+        $tipe .= 'i';
     }
 
-    if (!empty($conditions)) {
-        $sql .= " WHERE " . implode(" AND ", $conditions);
-    }
+    return [empty($kondisi) ? '' : ' WHERE ' . implode(' AND ', $kondisi), $tipe, $nilai];
+}
 
-    $sql .= " ORDER BY p.id_pesanan DESC LIMIT ?";
-    $params[] = $limit;
-    $types .= "i";
+/**
+ * Menghitung jumlah pesanan sesuai filter (untuk paginasi)
+ *
+ * @param mysqli $conn
+ * @param string|array|null $status_filter
+ * @param int|null $id_pengguna
+ * @return int
+ */
+function hitung_pesanan($conn, string|array|null $status_filter = null, ?int $id_pengguna = null): int
+{
+    [$where, $tipe, $nilai] = klausa_filter_pesanan($status_filter, $id_pengguna);
+    $stmt = mysqli_prepare($conn, "SELECT COUNT(*) FROM pesanan p" . $where);
+    if (!$stmt) {
+        return 0;
+    }
+    if ($tipe !== '') {
+        mysqli_stmt_bind_param($stmt, $tipe, ...$nilai);
+    }
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $baris = $res !== false ? mysqli_fetch_row($res) : null;
+    mysqli_stmt_close($stmt);
+    return (int) ($baris[0] ?? 0);
+}
+
+/**
+ * Mengambil daftar pesanan (dengan opsi filter status, id_pengguna, dan paginasi)
+ *
+ * @param mysqli $conn
+ * @param int $limit Jumlah baris per halaman
+ * @param string|array|null $status_filter Status tunggal atau daftar status
+ * @param int|null $id_pengguna
+ * @param int $offset Baris awal (LIMIT ? OFFSET ?)
+ * @return array
+ */
+function ambil_semua_pesanan($conn, int $limit = 50, string|array|null $status_filter = null, ?int $id_pengguna = null, int $offset = 0): array
+{
+    $daftar = [];
+    $sql = "SELECT p.id_pesanan, p.id_pengguna, p.id_driver, p.tanggal_pesanan, p.alamat_pengiriman,
+                   p.total_harga, p.status_pesanan,
+                   u.nama_lengkap AS nama_pemesan, u.username AS username_pemesan
+            FROM pesanan p
+            LEFT JOIN pengguna u ON p.id_pengguna = u.id_pengguna";
+
+    [$where, $types, $params] = klausa_filter_pesanan($status_filter, $id_pengguna);
+    $sql .= $where . " ORDER BY p.id_pesanan DESC LIMIT ? OFFSET ?";
+    $params[] = max(1, $limit);
+    $params[] = max(0, $offset);
+    $types .= "ii";
 
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
@@ -1524,6 +1562,74 @@ function e(mixed $nilai): string
 function format_rupiah(float $nominal): string
 {
     return 'Rp ' . number_format($nominal, 0, ',', '.');
+}
+
+/**
+ * Menghitung data paginasi prosedural
+ *
+ * @param int $total_baris Jumlah seluruh baris
+ * @param int $per_halaman Baris per halaman
+ * @param int $halaman_diminta Nomor halaman dari query string (1-based)
+ * @return array ['halaman', 'total_halaman', 'offset', 'per_halaman', 'total']
+ */
+function hitung_paginasi(int $total_baris, int $per_halaman, int $halaman_diminta): array
+{
+    $per_halaman = max(1, $per_halaman);
+    $total_halaman = max(1, (int) ceil($total_baris / $per_halaman));
+    $halaman = min(max(1, $halaman_diminta), $total_halaman);
+
+    return [
+        'halaman'       => $halaman,
+        'total_halaman' => $total_halaman,
+        'offset'        => ($halaman - 1) * $per_halaman,
+        'per_halaman'   => $per_halaman,
+        'total'         => max(0, $total_baris),
+    ];
+}
+
+/**
+ * Membuat HTML navigasi paginasi (Bootstrap) yang mempertahankan parameter GET lain.
+ *
+ * @param array $paginasi Hasil hitung_paginasi()
+ * @param string $halaman_php Nama file tujuan, misal 'riwayat.php'
+ * @param string $nama_param Nama parameter nomor halaman, misal 'hal'
+ * @param array $param_lain Parameter GET lain yang dipertahankan
+ * @param string $jangkar Fragmen URL (tanpa '#') agar kembali ke tabel yang sama
+ * @return string HTML aman (seluruh nilai sudah di-escape); '' jika hanya 1 halaman
+ */
+function render_paginasi(array $paginasi, string $halaman_php, string $nama_param = 'hal', array $param_lain = [], string $jangkar = ''): string
+{
+    $total_halaman = (int) $paginasi['total_halaman'];
+    if ($total_halaman <= 1) {
+        return '';
+    }
+    $sekarang = (int) $paginasi['halaman'];
+
+    $buat_url = static function (int $nomor) use ($halaman_php, $nama_param, $param_lain, $jangkar): string {
+        $param = array_merge($param_lain, [$nama_param => $nomor]);
+        return $halaman_php . '?' . http_build_query($param) . ($jangkar !== '' ? '#' . $jangkar : '');
+    };
+
+    // Tampilkan maksimal 5 nomor di sekitar halaman aktif
+    $awal = max(1, $sekarang - 2);
+    $akhir = min($total_halaman, $awal + 4);
+    $awal = max(1, $akhir - 4);
+
+    $html = '<nav aria-label="Navigasi halaman" class="d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-3 border-top">';
+    $html .= '<span class="small text-muted">Halaman ' . $sekarang . ' dari ' . $total_halaman . ' &bull; ' . (int) $paginasi['total'] . ' data</span>';
+    $html .= '<ul class="pagination pagination-sm mb-0">';
+
+    $html .= '<li class="page-item' . ($sekarang <= 1 ? ' disabled' : '') . '">'
+        . '<a class="page-link" href="' . e($buat_url(max(1, $sekarang - 1))) . '" aria-label="Halaman sebelumnya">&laquo;</a></li>';
+    for ($i = $awal; $i <= $akhir; $i++) {
+        $aktif = $i === $sekarang;
+        $html .= '<li class="page-item' . ($aktif ? ' active' : '') . '">'
+            . '<a class="page-link" href="' . e($buat_url($i)) . '"' . ($aktif ? ' aria-current="page"' : '') . '>' . $i . '</a></li>';
+    }
+    $html .= '<li class="page-item' . ($sekarang >= $total_halaman ? ' disabled' : '') . '">'
+        . '<a class="page-link" href="' . e($buat_url(min($total_halaman, $sekarang + 1))) . '" aria-label="Halaman berikutnya">&raquo;</a></li>';
+
+    return $html . '</ul></nav>';
 }
 
 /**
