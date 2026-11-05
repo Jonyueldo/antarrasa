@@ -714,14 +714,52 @@ function hitung_statistik_admin($conn): array
 // 4. FUNGSI PENGELOLAAN KERANJANG SEMENTARA (SESSION PROSEDURAL)
 // =====================================================================
 
+/** Batas waktu sesi login tanpa aktivitas (detik) = 60 menit */
+const BATAS_IDLE_SESI = 3600;
+
 /**
- * Memastikan session PHP aktif secara prosedural
+ * Memastikan session PHP aktif secara prosedural.
+ * SATU-SATUNYA tempat yang boleh memanggil session_start() di seluruh aplikasi.
+ * - Cookie sesi httponly + SameSite=Lax (+ secure jika HTTPS)
+ * - Strict mode agar ID sesi buatan penyerang ditolak
+ * - Idle timeout: data login dihapus jika tidak aktif lebih dari BATAS_IDLE_SESI
  */
 function mulai_sesi(): void
 {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+    if (session_status() !== PHP_SESSION_NONE) {
+        return;
     }
+
+    $pakai_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path'     => '/',
+        'secure'   => $pakai_https,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_start();
+
+    $sekarang = time();
+    $terakhir = (int) ($_SESSION['aktivitas_terakhir'] ?? $sekarang);
+
+    if (isset($_SESSION['pengguna']) && ($sekarang - $terakhir) > BATAS_IDLE_SESI) {
+        // Sesi login kedaluwarsa: hapus identitas login dan ganti ID sesi
+        unset(
+            $_SESSION['id_pengguna'],
+            $_SESSION['username'],
+            $_SESSION['nama_lengkap'],
+            $_SESSION['peran'],
+            $_SESSION['pengguna'],
+            $_SESSION['csrf_token']
+        );
+        session_regenerate_id(true);
+    }
+
+    $_SESSION['aktivitas_terakhir'] = $sekarang;
 }
 
 /**

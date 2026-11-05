@@ -13,10 +13,9 @@ declare(strict_types=1);
  * - 100% Membaca & Menulis Langsung ke Basis Data MySQL
  */
 
-// Pastikan session aktif
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Pastikan session aktif lewat satu pintu: mulai_sesi() di functions_order.php
+require_once __DIR__ . '/functions_order.php';
+mulai_sesi();
 
 // Muat modul fungsi manajemen pengguna admin
 require_once __DIR__ . '/functions_admin.php';
@@ -267,6 +266,11 @@ function login_pengguna($conn, string $username, string $password): array|false
         return false;
     }
 
+    // Cegah session fixation: ganti ID sesi dan token CSRF setiap kali login
+    // (registrasi_customer juga melewati fungsi ini saat auto-login)
+    session_regenerate_id(true);
+    unset($_SESSION['csrf_token']);
+
     // Buat session login
     $_SESSION['id_pengguna']  = (int) $user['id_pengguna'];
     $_SESSION['username']     = (string) $user['username'];
@@ -381,15 +385,24 @@ function registrasi_customer($conn, string $username, string $password, string $
  */
 function logout_pengguna(): void
 {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
+    mulai_sesi();
+
+    // Kosongkan seluruh data sesi, hapus cookie, lalu musnahkan sesi di server
+    $_SESSION = [];
+
+    if (ini_get('session.use_cookies')) {
+        $param = session_get_cookie_params();
+        setcookie(session_name(), '', [
+            'expires'  => time() - 42000,
+            'path'     => $param['path'],
+            'domain'   => $param['domain'],
+            'secure'   => $param['secure'],
+            'httponly' => $param['httponly'],
+            'samesite' => $param['samesite'] ?: 'Lax',
+        ]);
     }
 
-    unset($_SESSION['id_pengguna']);
-    unset($_SESSION['username']);
-    unset($_SESSION['nama_lengkap']);
-    unset($_SESSION['peran']);
-    unset($_SESSION['pengguna']);
+    session_destroy();
 }
 
 /**
