@@ -76,10 +76,15 @@ function ambil_menu_by_id($conn, int $id_menu): ?array
  * @param float $harga
  * @param string $deskripsi
  * @param string $status_menu
+ * @param int|null $id_merchant Merchant pemilik menu (null jika ditambahkan admin)
  * @return int|false ID menu baru jika berhasil, false jika gagal
  */
-function tambah_menu_makanan($conn, string $nama_menu, float $harga, string $deskripsi, string $status_menu = 'Tersedia'): int|false
+function tambah_menu_makanan($conn, string $nama_menu, float $harga, string $deskripsi, string $status_menu = 'Tersedia', ?int $id_merchant = null): int|false
 {
+    if ($id_merchant !== null && $id_merchant <= 0) {
+        $id_merchant = null;
+    }
+
     $nama_bersih = trim($nama_menu);
     if ($nama_bersih === '' || $harga < 0.0) {
         return false;
@@ -90,13 +95,13 @@ function tambah_menu_makanan($conn, string $nama_menu, float $harga, string $des
         $status_menu = 'Tersedia';
     }
 
-    $sql = "INSERT INTO menu (nama_menu, harga, deskripsi, status_menu) VALUES (?, ?, ?, ?)";
+    $sql = "INSERT INTO menu (id_merchant, nama_menu, harga, deskripsi, status_menu) VALUES (?, ?, ?, ?, ?)";
     $stmt = mysqli_prepare($conn, $sql);
     if (!$stmt) {
         return false;
     }
 
-    mysqli_stmt_bind_param($stmt, "sdss", $nama_bersih, $harga, $deskripsi, $status_menu);
+    mysqli_stmt_bind_param($stmt, "isdss", $id_merchant, $nama_bersih, $harga, $deskripsi, $status_menu);
     $eksekusi = mysqli_stmt_execute($stmt);
 
     if (!$eksekusi) {
@@ -599,9 +604,10 @@ function transisi_status_valid(string $dari, string $ke): bool
  * @param mysqli $conn
  * @param int $id_pesanan
  * @param string $status_baru ('Menunggu', 'Diproses', 'Dikirim', 'Selesai', 'Dibatalkan')
+ * @param int|null $id_driver Driver yang mengambil pesanan; hanya dicatat pada transisi ke 'Dikirim'
  * @return bool
  */
-function update_status_pesanan($conn, int $id_pesanan, string $status_baru): bool
+function update_status_pesanan($conn, int $id_pesanan, string $status_baru, ?int $id_driver = null): bool
 {
     if (!in_array($status_baru, STATUS_PESANAN_VALID, true)) {
         return false;
@@ -627,14 +633,21 @@ function update_status_pesanan($conn, int $id_pesanan, string $status_baru): boo
 
     // Syarat status lama di WHERE mencegah race condition: jika pihak lain
     // sudah mengubah status lebih dulu, affected_rows = 0 dan update ditolak
-    $sql = "UPDATE pesanan SET status_pesanan = ? WHERE id_pesanan = ? AND status_pesanan = ?";
+    $catat_driver = ($status_baru === 'Dikirim' && $id_driver !== null && $id_driver > 0);
+    $sql = $catat_driver
+        ? "UPDATE pesanan SET status_pesanan = ?, id_driver = ? WHERE id_pesanan = ? AND status_pesanan = ?"
+        : "UPDATE pesanan SET status_pesanan = ? WHERE id_pesanan = ? AND status_pesanan = ?";
     $stmt = mysqli_prepare($conn, $sql);
 
     if (!$stmt) {
         return false;
     }
 
-    mysqli_stmt_bind_param($stmt, "sis", $status_baru, $id_pesanan, $status_lama);
+    if ($catat_driver) {
+        mysqli_stmt_bind_param($stmt, "siis", $status_baru, $id_driver, $id_pesanan, $status_lama);
+    } else {
+        mysqli_stmt_bind_param($stmt, "sis", $status_baru, $id_pesanan, $status_lama);
+    }
     $sukses = mysqli_stmt_execute($stmt);
     $affected = mysqli_stmt_affected_rows($stmt);
     mysqli_stmt_close($stmt);
@@ -759,28 +772,34 @@ function bayar_pesanan($conn, int $id_pesanan, string $metode_bayar, ?string $bu
 }
 
 /**
- * Mengambil data akun driver aktif langsung dari tabel PENGGUNA (DataStore D4)
+ * Mengambil data akun driver langsung dari tabel PENGGUNA (DataStore D4)
  * Murni membaca database tanpa fallback dummy/hardcoded
+ *
+ * PENTING: jika $id_driver diberikan, pencarian bersifat KETAT (null bila tidak ada).
+ * Tanpa $id_driver, fungsi mengembalikan driver pertama - JANGAN dipakai untuk
+ * menampilkan kurir sebuah pesanan; gunakan pesanan.id_driver.
  *
  * @param mixed $conn Objek koneksi MySQLi prosedural
  * @param int|null $id_driver ID driver spesifik (opsional)
- * @return array|null Asosiatif [id_pengguna, username, nama_lengkap, peran] atau null jika belum ada kurir terdaftar
+ * @return array|null Asosiatif [id_pengguna, username, nama_lengkap, peran] atau null
  */
 function ambil_driver_aktif($conn, ?int $id_driver = null): ?array
 {
-    if ($id_driver !== null && $id_driver > 0) {
+    if ($id_driver !== null) {
+        if ($id_driver <= 0) {
+            return null;
+        }
         $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM pengguna WHERE id_pengguna = ? AND peran = 'driver' LIMIT 1";
         $stmt = mysqli_prepare($conn, $sql);
-        if ($stmt) {
-            mysqli_stmt_bind_param($stmt, "i", $id_driver);
-            mysqli_stmt_execute($stmt);
-            $res = mysqli_stmt_get_result($stmt);
-            $driver = ($res && mysqli_num_rows($res) > 0) ? mysqli_fetch_assoc($res) : null;
-            mysqli_stmt_close($stmt);
-            if ($driver !== null) {
-                return $driver;
-            }
+        if (!$stmt) {
+            return null;
         }
+        mysqli_stmt_bind_param($stmt, "i", $id_driver);
+        mysqli_stmt_execute($stmt);
+        $res = mysqli_stmt_get_result($stmt);
+        $driver = ($res && mysqli_num_rows($res) > 0) ? mysqli_fetch_assoc($res) : null;
+        mysqli_stmt_close($stmt);
+        return $driver;
     }
 
     $sql = "SELECT id_pengguna, username, nama_lengkap, peran FROM pengguna WHERE peran = 'driver' ORDER BY id_pengguna ASC LIMIT 1";
@@ -792,6 +811,35 @@ function ambil_driver_aktif($conn, ?int $id_driver = null): ?array
     }
 
     return null;
+}
+
+/**
+ * Mengambil merchant yang benar-benar menyiapkan sebuah pesanan,
+ * diturunkan dari menu.id_merchant pada item-item pesanan tersebut.
+ *
+ * @param mysqli $conn
+ * @param int $id_pesanan
+ * @return array|null [id_pengguna, username, nama_lengkap, peran] atau null jika menu belum punya merchant
+ */
+function ambil_merchant_pesanan($conn, int $id_pesanan): ?array
+{
+    $sql = "SELECT u.id_pengguna, u.username, u.nama_lengkap, u.peran
+            FROM detail_pesanan d
+            JOIN menu m ON d.id_menu = m.id_menu
+            JOIN pengguna u ON m.id_merchant = u.id_pengguna
+            WHERE d.id_pesanan = ? AND u.peran = 'merchant'
+            ORDER BY d.id_detail ASC
+            LIMIT 1";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        return null;
+    }
+    mysqli_stmt_bind_param($stmt, "i", $id_pesanan);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $merchant = ($res && mysqli_num_rows($res) > 0) ? mysqli_fetch_assoc($res) : null;
+    mysqli_stmt_close($stmt);
+    return $merchant;
 }
 
 /**

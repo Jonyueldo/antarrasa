@@ -76,8 +76,11 @@ $status_saat_ini = (string) $pesanan['status_pesanan'];
 $status_info = dapatkan_info_status($status_saat_ini);
 
 // Ambil data akun driver & merchant langsung dari tabel PENGGUNA (DataStore D4)
-$driver_aktif = ambil_driver_aktif($conn);
-$merchant_aktif = ambil_merchant_aktif($conn);
+// Kurir = driver yang tercatat di pesanan.id_driver; restoran = pemilik menu pesanan.
+// Keduanya null bila belum ada (bukan lagi "akun dengan ID terkecil").
+$id_driver_pesanan = (int) ($pesanan['id_driver'] ?? 0);
+$driver_aktif = $id_driver_pesanan > 0 ? ambil_driver_aktif($conn, $id_driver_pesanan) : null;
+$merchant_aktif = ambil_merchant_pesanan($conn, $id_pesanan);
 
 // Nomor step untuk timeline
 $nomor_step = match ($status_saat_ini) {
@@ -336,8 +339,8 @@ require_once __DIR__ . '/includes/header.php';
                         <i class="bi bi-person-x fs-4"></i>
                     </div>
                     <div>
-                        <div class="fw-bold text-dark">Belum ada kurir terdaftar di sistem</div>
-                        <small class="text-muted">Tidak ada pengguna dengan peran 'driver' pada tabel PENGGUNA.</small>
+                        <div class="fw-bold text-dark">Kurir belum ditugaskan</div>
+                        <small class="text-muted">Kurir akan tampil setelah pesanan diambil oleh driver dari restoran.</small>
                     </div>
                 </div>
             <?php endif; ?>

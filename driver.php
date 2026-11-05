@@ -29,7 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi_driver'])) {
     $transisi_valid = ['Dikirim', 'Selesai'];
 
     if ($id_pesanan > 0 && in_array($status_tujuan, $transisi_valid, true)) {
-        $sukses = update_status_pesanan($conn, $id_pesanan, $status_tujuan);
+        // Catat driver yang benar-benar mengambil pesanan (admin tidak dicatat sebagai kurir)
+        $id_driver_login = (($pengguna['peran'] ?? '') === 'driver') ? (int) $pengguna['id_pengguna'] : null;
+        $sukses = update_status_pesanan($conn, $id_pesanan, $status_tujuan, $id_driver_login);
         if ($sukses) {
             $pesan_sukses = "Status pesanan #{$id_pesanan} berhasil diperbarui menjadi '{$status_tujuan}'!";
         } else {

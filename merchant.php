@@ -44,7 +44,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
     if (trim($nama_menu) === '' || $harga <= 0.0) {
         $pesan_error = 'Nama hidangan dan harga yang valid (> 0) wajib diisi.';
     } else {
-        $id_baru = tambah_menu_makanan($conn, $nama_menu, $harga, $deskripsi, $status_menu);
+        // Menu dicatat atas nama merchant yang login (admin: tanpa pemilik)
+        $id_merchant_menu = (($pengguna['peran'] ?? '') === 'merchant') ? (int) $pengguna['id_pengguna'] : null;
+        $id_baru = tambah_menu_makanan($conn, $nama_menu, $harga, $deskripsi, $status_menu, $id_merchant_menu);
         if ($id_baru !== false) {
             $pesan_sukses = "Hidangan '{$nama_menu}' berhasil ditambahkan ke katalog menu D1!";
         } else {
