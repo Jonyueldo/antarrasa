@@ -762,10 +762,18 @@ function update_status_pesanan($conn, int $id_pesanan, string $status_baru, ?int
 
     // Syarat status lama di WHERE mencegah race condition: jika pihak lain
     // sudah mengubah status lebih dulu, affected_rows = 0 dan update ditolak
+    // Timestamp per tahap: nama kolom dari peta tetap (bukan input pengguna) sehingga aman disisipkan
+    $kolom_waktu = [
+        'Diproses' => 'waktu_diproses',
+        'Dikirim'  => 'waktu_dikirim',
+        'Selesai'  => 'waktu_selesai',
+    ];
+    $set_waktu = isset($kolom_waktu[$status_baru]) ? ", {$kolom_waktu[$status_baru]} = NOW()" : '';
+
     $catat_driver = ($status_baru === 'Dikirim' && $id_driver !== null && $id_driver > 0);
     $sql = $catat_driver
-        ? "UPDATE pesanan SET status_pesanan = ?, id_driver = ? WHERE id_pesanan = ? AND status_pesanan = ?"
-        : "UPDATE pesanan SET status_pesanan = ? WHERE id_pesanan = ? AND status_pesanan = ?";
+        ? "UPDATE pesanan SET status_pesanan = ?{$set_waktu}, id_driver = ? WHERE id_pesanan = ? AND status_pesanan = ?"
+        : "UPDATE pesanan SET status_pesanan = ?{$set_waktu} WHERE id_pesanan = ? AND status_pesanan = ?";
     $stmt = mysqli_prepare($conn, $sql);
 
     if (!$stmt) {
@@ -1255,6 +1263,21 @@ function e(mixed $nilai): string
 function format_rupiah(float $nominal): string
 {
     return 'Rp ' . number_format($nominal, 0, ',', '.');
+}
+
+/**
+ * Memformat nilai DATETIME dari database menjadi teks WIB; '' jika kosong / tidak valid
+ *
+ * @param string|null $waktu
+ * @return string Contoh: "24 Okt 2026, 10:15 WIB"
+ */
+function format_waktu(?string $waktu): string
+{
+    if ($waktu === null || $waktu === '' || str_starts_with($waktu, '0000')) {
+        return '';
+    }
+    $stempel = strtotime($waktu);
+    return $stempel === false ? '' : date('d M Y, H:i', $stempel) . ' WIB';
 }
 
 /**

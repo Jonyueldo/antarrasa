@@ -177,6 +177,7 @@ require_once __DIR__ . '/includes/header.php';
                         <h6 class="fw-bold mb-1 <?= $nomor_step === 1 ? 'text-danger' : 'text-dark' ?>">
                             1. Menunggu Pembayaran
                         </h6>
+                        <div class="small text-muted mb-1"><i class="bi bi-clock me-1"></i>Dipesan <?= e(format_waktu((string) $pesanan['tanggal_pesanan'])) ?><?php if (format_waktu($pesanan['waktu_bayar'] ?? null) !== ''): ?> &bull; Dibayar <?= e(format_waktu($pesanan['waktu_bayar'])) ?><?php if (!empty($pesanan['metode_bayar'])): ?> via <?= e($pesanan['metode_bayar']) ?><?php endif; ?><?php endif; ?></div>
                         <p class="text-muted small mb-0">
                             Pesanan tercatat di <code>PESANAN</code> (D2).
                             <?php if ($nomor_step === 1): ?>
@@ -197,6 +198,9 @@ require_once __DIR__ . '/includes/header.php';
                         <h6 class="fw-bold mb-1 <?= $nomor_step === 2 ? 'text-primary' : 'text-dark' ?>">
                             2. Dapur Restoran Memasak Pesanan
                         </h6>
+                        <?php if (format_waktu($pesanan['waktu_diproses'] ?? null) !== ''): ?>
+                            <div class="small text-muted mb-1"><i class="bi bi-clock me-1"></i><?= e(format_waktu($pesanan['waktu_diproses'])) ?></div>
+                        <?php endif; ?>
                         <p class="text-muted small mb-0">
                             <?php if ($merchant_aktif !== null): ?>
                                 Pembayaran diterima. Restoran <strong><?= e($merchant_aktif['nama_lengkap']) ?></strong> (@<?= e($merchant_aktif['username']) ?>) sedang meracik bumbu dan memasak hidangan pesanan Anda.
@@ -216,6 +220,9 @@ require_once __DIR__ . '/includes/header.php';
                         <h6 class="fw-bold mb-1 <?= $nomor_step === 3 ? 'text-primary' : 'text-dark' ?>">
                             3. Kurir Sedang Mengantar ke Alamat Anda
                         </h6>
+                        <?php if (format_waktu($pesanan['waktu_dikirim'] ?? null) !== ''): ?>
+                            <div class="small text-muted mb-1"><i class="bi bi-clock me-1"></i><?= e(format_waktu($pesanan['waktu_dikirim'])) ?></div>
+                        <?php endif; ?>
                         <p class="text-muted small mb-0">
                             <?php if ($driver_aktif !== null): ?>
                                 Pesanan telah diambil oleh kurir <strong><?= e($driver_aktif['nama_lengkap']) ?></strong> (@<?= e($driver_aktif['username']) ?>) dan sedang dalam perjalanan menuju alamat tujuan Anda.
@@ -235,6 +242,9 @@ require_once __DIR__ . '/includes/header.php';
                         <h6 class="fw-bold mb-1 <?= $nomor_step === 4 ? 'text-success' : 'text-dark' ?>">
                             4. Makanan Tiba &amp; Pesanan Selesai
                         </h6>
+                        <?php if (format_waktu($pesanan['waktu_selesai'] ?? null) !== ''): ?>
+                            <div class="small text-muted mb-1"><i class="bi bi-clock me-1"></i><?= e(format_waktu($pesanan['waktu_selesai'])) ?></div>
+                        <?php endif; ?>
                         <p class="text-muted small mb-0">
                             Makanan telah berhasil diserahkan kepada pelanggan dalam keadaan segar dan nikmat.
                         </p>
