@@ -197,7 +197,7 @@ require_once __DIR__ . '/includes/header.php';
             <?php 
                 $id_menu = (int) $menu['id_menu'];
                 $is_tersedia = (strcasecmp((string) $menu['status_menu'], 'Tersedia') === 0);
-                $gambar_url = dapatkan_gambar_menu((string) $menu['nama_menu']);
+                $gambar_url = url_gambar_menu($menu);
             ?>
             <div class="col">
                 <div class="food-card">

@@ -149,7 +149,7 @@ proteksi CSRF, bug logika yang membuat tampilan salah secara faktual, dan file d
 ## 5. PRIORITAS TAMBAHAN — Polish dan Fitur Pelengkap
 
 - [x] **33. Responsif ponsel** (U1 sampai U4) — tambah breakpoint 576px dan 768px, ubah tabel jadi kartu bertumpuk memakai `display:block` plus atribut `data-label` pada sel, ubah sidebar admin jadi Bootstrap Offcanvas (bundle JS sudah tersedia di `footer.php:57`), dan perbaiki overlap floating checkout bar.
-- [ ] **34. Gambar menu dari database** (U5) — pakai `menu.gambar_url` plus placeholder lokal di `assets/img/`, jadikan `dapatkan_gambar_menu()` fallback terakhir saja, dan hentikan hotlink Unsplash.
+- [x] **34. Gambar menu dari database** (U5) — pakai `menu.gambar_url` plus placeholder lokal di `assets/img/`, jadikan `dapatkan_gambar_menu()` fallback terakhir saja, dan hentikan hotlink Unsplash.
 - [ ] **35. Aksesibilitas** (U6) — tambah `aria-label` pada semua tombol ikon, buat `:focus-visible` yang terlihat, dan periksa kontras badge.
 - [ ] **36. Paginasi** (L15) — paginasi prosedural dengan `LIMIT ? OFFSET ?` di `riwayat.php`, `admin.php`, dan `merchant.php`.
 - [ ] **37. Klem jumlah di server** (U8) — batasi kuantitas 1 sampai 50 di dalam `tambah_ke_keranjang()`, tidak hanya lewat atribut `max` di HTML.

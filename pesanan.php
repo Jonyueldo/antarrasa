@@ -111,7 +111,7 @@ foreach ($keranjang as $id_menu => $qty) {
             'jumlah'      => $jumlah,
             'subtotal'    => $subtotal,
             'status_menu' => (string) $menu_item['status_menu'],
-            'gambar_url'  => dapatkan_gambar_menu((string) $menu_item['nama_menu']),
+            'gambar_url'  => url_gambar_menu($menu_item),
         ];
     }
 }

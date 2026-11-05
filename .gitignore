@@ -8,6 +8,8 @@ config/database.php
 # Unggahan pengguna (bukti bayar) tidak di-commit; hanya aturan keamanan foldernya
 assets/uploads/bukti/*
 !assets/uploads/bukti/.htaccess
+assets/uploads/menu/*
+!assets/uploads/menu/.htaccess
 
 # File Log & Temp
 *.log

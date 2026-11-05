@@ -255,6 +255,43 @@ function ubah_menu_makanan($conn, int $id_menu, string $nama_menu, float $harga,
 }
 
 /**
+ * Menyimpan path foto menu (hasil simpan_gambar_menu) ke kolom menu.gambar_url.
+ * Foto lama hasil unggahan (bukan placeholder) dihapus dari disk.
+ *
+ * @param mysqli $conn
+ * @param int $id_menu
+ * @param string $path_relatif Contoh: 'assets/uploads/menu/menu_abc.jpg'
+ * @param string $akar_proyek Folder absolut proyek untuk menghapus foto lama
+ * @return bool
+ */
+function set_gambar_menu($conn, int $id_menu, string $path_relatif, string $akar_proyek): bool
+{
+    if (!preg_match('#^assets/uploads/menu/[A-Za-z0-9._-]+\.(jpg|png|webp)$#', $path_relatif)) {
+        return false;
+    }
+
+    $menu = ambil_menu_by_id($conn, $id_menu);
+    if ($menu === null) {
+        return false;
+    }
+
+    $stmt = mysqli_prepare($conn, "UPDATE menu SET gambar_url = ? WHERE id_menu = ?");
+    if (!$stmt) {
+        return false;
+    }
+    mysqli_stmt_bind_param($stmt, "si", $path_relatif, $id_menu);
+    $sukses = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+
+    $lama = (string) ($menu['gambar_url'] ?? '');
+    if ($sukses && $lama !== $path_relatif && preg_match('#^assets/uploads/menu/[A-Za-z0-9._-]+$#', $lama)) {
+        @unlink($akar_proyek . '/' . $lama);
+    }
+
+    return $sukses;
+}
+
+/**
  * Mengaktifkan / menonaktifkan menu dari katalog (soft delete) - Fitur Merchant
  *
  * @param mysqli $conn
@@ -907,10 +944,15 @@ const MIME_BUKTI_VALID = [
     'application/pdf' => 'pdf',
 ];
 
+/** Tipe MIME foto menu yang diterima => ekstensi file hasil generate */
+const MIME_GAMBAR_MENU_VALID = [
+    'image/jpeg' => 'jpg',
+    'image/png'  => 'png',
+    'image/webp' => 'webp',
+];
+
 /**
  * Memvalidasi dan menyimpan file bukti bayar (opsional) dari $_FILES.
- * - MIME diperiksa dari ISI file (finfo), bukan dari nama/ekstensi kiriman browser
- * - Nama file di-generate acak; nama asli dari pengguna tidak pernah dipakai
  *
  * @param array|null $file Elemen $_FILES['bukti_bayar'] atau null
  * @param string $folder_tujuan Folder absolut penyimpanan
@@ -918,44 +960,75 @@ const MIME_BUKTI_VALID = [
  */
 function simpan_bukti_bayar(?array $file, string $folder_tujuan): array
 {
-    // Tidak ada file yang dipilih: bukti bayar bersifat opsional
+    return simpan_berkas_unggahan($file, $folder_tujuan, 'bukti', MIME_BUKTI_VALID, 'bukti bayar', 'JPG, PNG, WEBP, atau PDF');
+}
+
+/**
+ * Memvalidasi dan menyimpan foto menu (opsional) dari $_FILES.
+ *
+ * @param array|null $file Elemen $_FILES['gambar_menu'] atau null
+ * @param string $folder_tujuan Folder absolut penyimpanan
+ * @return array ['sukses' => bool, 'nama_file' => ?string, 'pesan' => string]
+ */
+function simpan_gambar_menu(?array $file, string $folder_tujuan): array
+{
+    return simpan_berkas_unggahan($file, $folder_tujuan, 'menu', MIME_GAMBAR_MENU_VALID, 'foto menu', 'JPG, PNG, atau WEBP');
+}
+
+/**
+ * Validator & penyimpan unggahan generik (dipakai bukti bayar dan foto menu).
+ * - MIME diperiksa dari ISI file (finfo), bukan dari nama/ekstensi kiriman browser
+ * - Nama file di-generate acak; nama asli dari pengguna tidak pernah dipakai
+ * - Ukuran maksimal BATAS_UKURAN_BUKTI (2 MB)
+ *
+ * @param array|null $file Elemen $_FILES[...] atau null
+ * @param string $folder_tujuan Folder absolut penyimpanan
+ * @param string $awalan Awalan nama file hasil generate
+ * @param array $mime_valid Peta MIME => ekstensi yang diterima
+ * @param string $nama_jenis Nama jenis berkas untuk pesan error
+ * @param string $daftar_format Daftar format untuk pesan error
+ * @return array ['sukses' => bool, 'nama_file' => ?string, 'pesan' => string]
+ */
+function simpan_berkas_unggahan(?array $file, string $folder_tujuan, string $awalan, array $mime_valid, string $nama_jenis, string $daftar_format): array
+{
+    // Tidak ada file yang dipilih: unggahan bersifat opsional
     if ($file === null || (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         return ['sukses' => true, 'nama_file' => null, 'pesan' => ''];
     }
 
     $kode_error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
     if ($kode_error === UPLOAD_ERR_INI_SIZE || $kode_error === UPLOAD_ERR_FORM_SIZE) {
-        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Ukuran file bukti bayar maksimal 2 MB.'];
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => "Ukuran file {$nama_jenis} maksimal 2 MB."];
     }
     if ($kode_error !== UPLOAD_ERR_OK) {
-        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Unggahan bukti bayar gagal. Silakan coba lagi.'];
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => "Unggahan {$nama_jenis} gagal. Silakan coba lagi."];
     }
 
     $path_sementara = (string) ($file['tmp_name'] ?? '');
     if ($path_sementara === '' || !is_uploaded_file($path_sementara)) {
-        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'File bukti bayar tidak valid.'];
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => "File {$nama_jenis} tidak valid."];
     }
 
     $ukuran = (int) ($file['size'] ?? 0);
     if ($ukuran <= 0 || $ukuran > BATAS_UKURAN_BUKTI) {
-        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Ukuran file bukti bayar maksimal 2 MB.'];
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => "Ukuran file {$nama_jenis} maksimal 2 MB."];
     }
 
     $finfo = finfo_open(FILEINFO_MIME_TYPE);
     $mime = $finfo !== false ? (string) finfo_file($finfo, $path_sementara) : '';
-    if (!isset(MIME_BUKTI_VALID[$mime])) {
-        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Format bukti bayar harus JPG, PNG, WEBP, atau PDF.'];
+    if (!isset($mime_valid[$mime])) {
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => "Format {$nama_jenis} harus {$daftar_format}."];
     }
 
     if (!is_dir($folder_tujuan) && !mkdir($folder_tujuan, 0755, true) && !is_dir($folder_tujuan)) {
-        error_log('[AntarRasa] Folder bukti bayar tidak dapat dibuat: ' . $folder_tujuan);
-        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Penyimpanan bukti bayar tidak tersedia.'];
+        error_log("[AntarRasa] Folder {$nama_jenis} tidak dapat dibuat: " . $folder_tujuan);
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => "Penyimpanan {$nama_jenis} tidak tersedia."];
     }
 
-    $nama_file = 'bukti_' . bin2hex(random_bytes(16)) . '.' . MIME_BUKTI_VALID[$mime];
+    $nama_file = $awalan . '_' . bin2hex(random_bytes(16)) . '.' . $mime_valid[$mime];
     if (!move_uploaded_file($path_sementara, $folder_tujuan . DIRECTORY_SEPARATOR . $nama_file)) {
-        error_log('[AntarRasa] Gagal memindahkan bukti bayar ke ' . $folder_tujuan);
-        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Gagal menyimpan file bukti bayar.'];
+        error_log("[AntarRasa] Gagal memindahkan {$nama_jenis} ke " . $folder_tujuan);
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => "Gagal menyimpan file {$nama_jenis}."];
     }
 
     return ['sukses' => true, 'nama_file' => $nama_file, 'pesan' => ''];
@@ -1516,32 +1589,50 @@ function dapatkan_info_status(string $status): array
 }
 
 /**
- * Mendapatkan tautan gambar kuliner beresolusi tinggi (Unsplash Food terkurasi)
- * dengan fallback yang andal
+ * Menentukan URL gambar sebuah menu dengan urutan prioritas:
+ *   1. menu.gambar_url (foto unggahan merchant; hanya path LOKAL di assets/ yang diterima)
+ *   2. placeholder lokal sesuai menu.kategori (assets/img/menu-<kategori>.svg)
+ *   3. dapatkan_gambar_menu() sebagai fallback terakhir (tebakan dari nama, tetap lokal)
+ * Tidak ada lagi hotlink ke layanan luar, sehingga gambar tetap tampil saat offline.
+ *
+ * @param array $menu Baris menu (minimal nama_menu; opsional gambar_url & kategori)
+ * @return string Path relatif gambar
+ */
+function url_gambar_menu(array $menu): string
+{
+    $gambar = trim((string) ($menu['gambar_url'] ?? ''));
+    if ($gambar !== '' && preg_match('#^assets/(img|uploads/menu)/[A-Za-z0-9._-]+\.(jpg|jpeg|png|webp|svg)$#', $gambar)) {
+        return $gambar;
+    }
+
+    $kategori = (string) ($menu['kategori'] ?? '');
+    if (isset(KATEGORI_MENU[$kategori])) {
+        return 'assets/img/menu-' . $kategori . '.svg';
+    }
+
+    return dapatkan_gambar_menu((string) ($menu['nama_menu'] ?? ''));
+}
+
+/**
+ * Fallback TERAKHIR: menebak placeholder lokal dari nama menu (untuk menu tanpa kategori).
+ * Dahulu melakukan hotlink ke Unsplash; kini selalu mengembalikan berkas lokal di assets/img/.
  *
  * @param string $nama_menu
- * @return string URL gambar
+ * @return string Path relatif gambar placeholder lokal
  */
 function dapatkan_gambar_menu(string $nama_menu): string
 {
     $nama_lower = mb_strtolower($nama_menu);
 
-    if (str_contains($nama_lower, 'nasi goreng')) {
-        return 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?auto=format&fit=crop&w=700&q=80';
-    } elseif (str_contains($nama_lower, 'ayam') || str_contains($nama_lower, 'taliwang')) {
-        return 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?auto=format&fit=crop&w=700&q=80';
-    } elseif (str_contains($nama_lower, 'rendang')) {
-        return 'https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?auto=format&fit=crop&w=700&q=80';
-    } elseif (str_contains($nama_lower, 'sate')) {
-        return 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=700&q=80';
-    } elseif (str_contains($nama_lower, 'mie')) {
-        return 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=700&q=80';
-    } elseif (str_contains($nama_lower, 'cendol') || str_contains($nama_lower, 'durian') || str_contains($nama_lower, 'es')) {
-        return 'https://images.unsplash.com/photo-1579954115545-a95591f28bfc?auto=format&fit=crop&w=700&q=80';
-    } elseif (str_contains($nama_lower, 'kebab') || str_contains($nama_lower, 'burger')) {
-        return 'https://images.unsplash.com/photo-1561758033-d89a9ad46330?auto=format&fit=crop&w=700&q=80';
-    }
+    $tebakan = match (true) {
+        str_contains($nama_lower, 'sate') => 'sate',
+        str_contains($nama_lower, 'mie') => 'mie',
+        str_contains($nama_lower, 'nasi') => 'nasi',
+        str_contains($nama_lower, 'cendol') || str_contains($nama_lower, 'teh') || str_contains($nama_lower, 'kopi') || str_starts_with($nama_lower, 'es ') => 'minuman',
+        str_contains($nama_lower, 'rendang') || str_contains($nama_lower, 'sapi') => 'daging',
+        str_contains($nama_lower, 'ayam') || str_contains($nama_lower, 'bebek') => 'ayam',
+        default => 'default',
+    };
 
-    // Default Indonesian food placeholder
-    return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=700&q=80';
+    return 'assets/img/menu-' . $tebakan . '.svg';
 }

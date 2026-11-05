@@ -19,6 +19,9 @@ cek_akses(['merchant', 'admin']);
 
 $pengguna = ambil_pengguna_login();
 
+// Folder foto menu hasil unggahan merchant (dilindungi .htaccess, tidak di-commit)
+$folder_gambar_menu = __DIR__ . '/assets/uploads/menu';
+
 // Notifikasi hasil aksi dari redirect PRG (dicetak dengan e() di bawah)
 $pesan_sukses = isset($_GET['pesan_sukses']) ? (string) $_GET['pesan_sukses'] : '';
 $pesan_error = isset($_GET['pesan_error']) ? (string) $_GET['pesan_error'] : '';
@@ -49,13 +52,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
     } elseif (!isset(KATEGORI_MENU[$kategori])) {
         $pesan_error = 'Silakan pilih kategori hidangan yang tersedia.';
     } else {
-        // Menu dicatat atas nama merchant yang login (admin: tanpa pemilik)
-        $id_merchant_menu = (($pengguna['peran'] ?? '') === 'merchant') ? (int) $pengguna['id_pengguna'] : null;
-        $id_baru = tambah_menu_makanan($conn, $nama_menu, $harga, $deskripsi, $status_menu, $id_merchant_menu, $kategori);
-        if ($id_baru !== false) {
-            $pesan_sukses = "Hidangan '{$nama_menu}' berhasil ditambahkan ke katalog menu D1!";
+        // Foto opsional divalidasi SEBELUM menyimpan menu agar tidak ada data setengah jadi
+        $unggah = simpan_gambar_menu($_FILES['gambar_menu'] ?? null, $folder_gambar_menu);
+        if (!$unggah['sukses']) {
+            $pesan_error = $unggah['pesan'];
         } else {
-            $pesan_error = 'Gagal menyimpan hidangan baru ke basis data.';
+            // Menu dicatat atas nama merchant yang login (admin: tanpa pemilik)
+            $id_merchant_menu = (($pengguna['peran'] ?? '') === 'merchant') ? (int) $pengguna['id_pengguna'] : null;
+            $id_baru = tambah_menu_makanan($conn, $nama_menu, $harga, $deskripsi, $status_menu, $id_merchant_menu, $kategori);
+            if ($id_baru !== false) {
+                if ($unggah['nama_file'] !== null) {
+                    set_gambar_menu($conn, $id_baru, 'assets/uploads/menu/' . $unggah['nama_file'], __DIR__);
+                }
+                $pesan_sukses = "Hidangan '{$nama_menu}' berhasil ditambahkan ke katalog menu D1!";
+            } else {
+                if ($unggah['nama_file'] !== null) {
+                    @unlink($folder_gambar_menu . '/' . $unggah['nama_file']);
+                }
+                $pesan_error = 'Gagal menyimpan hidangan baru ke basis data.';
+            }
         }
     }
 }
@@ -110,10 +125,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['ak
         $pesan_error = 'Anda hanya dapat mengelola menu milik restoran Anda sendiri.';
     } elseif (trim($nama_menu) === '' || $harga <= 0.0 || !isset(KATEGORI_MENU[$kategori])) {
         $pesan_error = 'Nama hidangan, harga (> 0), dan kategori wajib diisi dengan benar.';
-    } elseif (ubah_menu_makanan($conn, $id_menu, $nama_menu, $harga, $deskripsi, $kategori, $status_menu)) {
-        $pesan_sukses = "Perubahan menu '" . trim($nama_menu) . "' berhasil disimpan.";
     } else {
-        $pesan_error = 'Gagal menyimpan perubahan menu.';
+        $unggah = simpan_gambar_menu($_FILES['gambar_menu'] ?? null, $folder_gambar_menu);
+        if (!$unggah['sukses']) {
+            $pesan_error = $unggah['pesan'];
+        } elseif (ubah_menu_makanan($conn, $id_menu, $nama_menu, $harga, $deskripsi, $kategori, $status_menu)) {
+            if ($unggah['nama_file'] !== null) {
+                set_gambar_menu($conn, $id_menu, 'assets/uploads/menu/' . $unggah['nama_file'], __DIR__);
+            }
+            $pesan_sukses = "Perubahan menu '" . trim($nama_menu) . "' berhasil disimpan.";
+        } else {
+            if ($unggah['nama_file'] !== null) {
+                @unlink($folder_gambar_menu . '/' . $unggah['nama_file']);
+            }
+            $pesan_error = 'Gagal menyimpan perubahan menu.';
+        }
     }
 }
 
@@ -350,7 +376,7 @@ require_once __DIR__ . '/includes/header.php';
                 <i class="bi bi-plus-circle-fill text-primary me-2"></i>Tambah Menu Hidangan Restoran
             </h5>
 
-            <form method="POST" action="merchant.php">
+            <form method="POST" action="merchant.php" enctype="multipart/form-data">
                 <?= field_csrf() ?>
                 <input type="hidden" name="aksi" value="tambah_menu">
 
@@ -378,6 +404,12 @@ require_once __DIR__ . '/includes/header.php';
                             <option value="<?= e($kunci_kat) ?>"><?= e($info_kat['label']) ?></option>
                         <?php endforeach; ?>
                     </select>
+                </div>
+
+                <div class="mb-2">
+                    <label for="gambar_menu" class="form-label small fw-semibold text-muted text-uppercase">Foto Hidangan <span class="fw-normal text-lowercase">(opsional)</span></label>
+                    <input type="file" class="form-control form-control-sm" id="gambar_menu" name="gambar_menu" accept="image/jpeg,image/png,image/webp">
+                    <div class="form-text" style="font-size: 0.72rem;">JPG, PNG, atau WEBP maks. 2 MB. Tanpa foto, ilustrasi kategori dipakai otomatis.</div>
                 </div>
 
                 <div class="row g-2 mb-3">
@@ -430,7 +462,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <tr>
                                     <td data-label="Hidangan" class="ps-3 py-2">
                                         <div class="d-flex align-items-center">
-                                            <img src="<?= e(dapatkan_gambar_menu((string)$m['nama_menu'])) ?>" alt="<?= e($m['nama_menu']) ?>" class="rounded-3 me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                            <img src="<?= e(url_gambar_menu($m)) ?>" alt="<?= e($m['nama_menu']) ?>" class="rounded-3 me-2" style="width: 40px; height: 40px; object-fit: cover;">
                                             <div>
                                                 <div class="fw-bold text-dark small"><?= e($m['nama_menu']) ?></div>
                                                 <div class="text-muted small text-truncate" style="max-width: 170px; font-size: 0.72rem;"><?= e($m['deskripsi'] ?? '-') ?></div>
@@ -489,7 +521,7 @@ require_once __DIR__ . '/includes/header.php';
                                 <!-- Form Edit Menu (tersembunyi, dibuka lewat tombol Edit) -->
                                 <tr class="collapse" id="edit-menu-<?= $id_m ?>">
                                     <td colspan="4" class="bg-light px-3 py-3">
-                                        <form method="POST" action="merchant.php" class="row g-2 align-items-end">
+                                        <form method="POST" action="merchant.php" class="row g-2 align-items-end" enctype="multipart/form-data">
                                             <?= field_csrf() ?>
                                             <input type="hidden" name="aksi" value="ubah_menu">
                                             <input type="hidden" name="id_menu" value="<?= $id_m ?>">
@@ -512,6 +544,10 @@ require_once __DIR__ . '/includes/header.php';
                                             <div class="col-md-6">
                                                 <label class="form-label small fw-semibold text-muted mb-1" for="desk-<?= $id_m ?>">Deskripsi</label>
                                                 <input type="text" class="form-control form-control-sm" id="desk-<?= $id_m ?>" name="deskripsi" value="<?= e($m['deskripsi'] ?? '') ?>">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label small fw-semibold text-muted mb-1" for="foto-<?= $id_m ?>">Ganti Foto <span class="fw-normal">(opsional, JPG/PNG/WEBP maks. 2 MB)</span></label>
+                                                <input type="file" class="form-control form-control-sm" id="foto-<?= $id_m ?>" name="gambar_menu" accept="image/jpeg,image/png,image/webp">
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="form-label small fw-semibold text-muted mb-1" for="stat-<?= $id_m ?>">Ketersediaan</label>
