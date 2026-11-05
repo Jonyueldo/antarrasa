@@ -16,10 +16,8 @@ mulai_sesi();
 wajib_csrf();
 
 $ref = isset($_GET['ref']) ? (string) $_GET['ref'] : (isset($_POST['ref']) ? (string) $_POST['ref'] : '');
-// Cegah open redirect: pastikan hanya path lokal
-if ($ref !== '' && (!str_starts_with($ref, '/') && !preg_match('/^[a-zA-Z0-9_\-\.\/]+\.php(\?.*)?$/', $ref))) {
-    $ref = '';
-}
+// Cegah open redirect: hanya nama file .php lokal pada daftar putih
+$ref = bersihkan_ref($ref);
 
 // Jika sudah login, langsung arahkan ke dashboard yang sesuai
 if (apakah_login()) {

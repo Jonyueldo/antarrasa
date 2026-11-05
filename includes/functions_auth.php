@@ -191,6 +191,43 @@ function wajib_csrf(): void
 }
 
 /**
+ * Membersihkan parameter tujuan redirect (ref) setelah login agar tidak terjadi open redirect.
+ * Hanya nama file .php lokal pada daftar putih yang diizinkan, misalnya
+ * '/antarrasa/riwayat.php?id=3' menjadi 'riwayat.php?id=3'. Selain itu dikembalikan ''.
+ *
+ * @param string $ref
+ * @return string
+ */
+function bersihkan_ref(string $ref): string
+{
+    $ref = trim($ref);
+
+    // Tolak URL protocol-relative (//host), skema (http:, javascript:), backslash, dan karakter kontrol
+    if ($ref === '' || str_starts_with($ref, '//') || str_contains($ref, ':')
+        || str_contains($ref, '\\') || preg_match('/[\x00-\x1F\x7F]/', $ref)) {
+        return '';
+    }
+
+    $halaman_diizinkan = [
+        'index.php', 'pesanan.php', 'pembayaran.php', 'status.php',
+        'riwayat.php', 'merchant.php', 'driver.php', 'admin.php',
+    ];
+
+    $path = (string) parse_url($ref, PHP_URL_PATH);
+    $nama_file = basename($path);
+    if (!in_array($nama_file, $halaman_diizinkan, true)) {
+        return '';
+    }
+
+    $query = (string) parse_url($ref, PHP_URL_QUERY);
+    if ($query !== '' && preg_match('/^[A-Za-z0-9_\-.=&%+]+$/', $query)) {
+        return $nama_file . '?' . $query;
+    }
+
+    return $nama_file;
+}
+
+/**
  * Memeriksa apakah fitur demo (quick login & panel simulasi status) boleh aktif.
  * Bernilai false jika konstanta MODE_DEMO tidak didefinisikan di config/database.php.
  *
