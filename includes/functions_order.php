@@ -1399,6 +1399,88 @@ function hitung_statistik_admin($conn, ?string $dari = null, ?string $sampai = n
 }
 
 // =====================================================================
+// STATISTIK MERCHANT (MENU TERLARIS) & DRIVER (REKAP PENGANTARAN)
+// =====================================================================
+
+/**
+ * Menu terlaris berdasarkan SUM(jumlah) dari pesanan yang sudah dibayar/diproses
+ * (Diproses, Dikirim, Selesai). Pesanan Menunggu & Dibatalkan tidak dihitung.
+ *
+ * @param mysqli $conn
+ * @param int $limit
+ * @param int|null $id_merchant Batasi ke menu milik merchant ini (+ menu tanpa pemilik); null = semua
+ * @return array [id_menu, nama_menu, kategori, gambar_url, total_terjual, total_pendapatan]
+ */
+function ambil_menu_terlaris($conn, int $limit = 5, ?int $id_merchant = null): array
+{
+    $sql = "SELECT m.id_menu, m.nama_menu, m.kategori, m.gambar_url,
+                   SUM(d.jumlah) AS total_terjual, SUM(d.subtotal) AS total_pendapatan
+            FROM detail_pesanan d
+            JOIN pesanan p ON d.id_pesanan = p.id_pesanan
+            JOIN menu m ON d.id_menu = m.id_menu
+            WHERE p.status_pesanan IN ('Diproses', 'Dikirim', 'Selesai')";
+    $tipe = '';
+    $nilai = [];
+    if ($id_merchant !== null) {
+        $sql .= " AND (m.id_merchant = ? OR m.id_merchant IS NULL)";
+        $tipe .= 'i';
+        $nilai[] = $id_merchant;
+    }
+    $sql .= " GROUP BY m.id_menu, m.nama_menu, m.kategori, m.gambar_url
+              ORDER BY total_terjual DESC, total_pendapatan DESC
+              LIMIT ?";
+    $tipe .= 'i';
+    $nilai[] = max(1, $limit);
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        return [];
+    }
+    mysqli_stmt_bind_param($stmt, $tipe, ...$nilai);
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $data = $res !== false ? mysqli_fetch_all($res, MYSQLI_ASSOC) : [];
+    mysqli_stmt_close($stmt);
+    return $data;
+}
+
+/**
+ * Rekap pengantaran per driver (id_driver): jumlah pengantaran selesai, sedang diantar,
+ * dan total nilai pesanan yang telah diantar.
+ *
+ * @param mysqli $conn
+ * @param int|null $id_driver null = semua driver (untuk admin)
+ * @return array [id_driver, nama_driver, username, total_selesai, sedang_diantar, total_nilai]
+ */
+function ambil_rekap_driver($conn, ?int $id_driver = null): array
+{
+    $sql = "SELECT u.id_pengguna AS id_driver, u.nama_lengkap AS nama_driver, u.username,
+                   COALESCE(SUM(p.status_pesanan = 'Selesai'), 0) AS total_selesai,
+                   COALESCE(SUM(p.status_pesanan = 'Dikirim'), 0) AS sedang_diantar,
+                   COALESCE(SUM(CASE WHEN p.status_pesanan = 'Selesai' THEN p.total_harga ELSE 0 END), 0) AS total_nilai
+            FROM pengguna u
+            LEFT JOIN pesanan p ON p.id_driver = u.id_pengguna
+            WHERE u.peran = 'driver'";
+    if ($id_driver !== null) {
+        $sql .= " AND u.id_pengguna = ?";
+    }
+    $sql .= " GROUP BY u.id_pengguna, u.nama_lengkap, u.username ORDER BY total_selesai DESC, u.id_pengguna ASC";
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        return [];
+    }
+    if ($id_driver !== null) {
+        mysqli_stmt_bind_param($stmt, "i", $id_driver);
+    }
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $data = $res !== false ? mysqli_fetch_all($res, MYSQLI_ASSOC) : [];
+    mysqli_stmt_close($stmt);
+    return $data;
+}
+
+// =====================================================================
 // LAPORAN TRANSAKSI ADMIN (FILTER TANGGAL & STATUS, EKSPOR CSV)
 // =====================================================================
 

@@ -70,6 +70,9 @@ $detail_tugas = ambil_detail_pesanan_massal(
 $id_driver_statistik = (($pengguna['peran'] ?? '') === 'driver') ? (int) $pengguna['id_pengguna'] : null;
 $jumlah_selesai_hari_ini = hitung_selesai_hari_ini($conn, $id_driver_statistik);
 
+// Rekap pengantaran per id_driver: driver melihat miliknya, admin melihat semua driver
+$rekap_driver = ambil_rekap_driver($conn, $id_driver_statistik);
+
 $judul_halaman = 'Panel Pengantaran Driver - AntarRasa';
 $tampilkan_stepper = false;
 
@@ -122,6 +125,45 @@ require_once __DIR__ . '/includes/header.php';
             <div class="text-muted small mt-2">Pengantaran berhasil diselesaikan</div>
         </div>
     </div>
+</div>
+
+<!-- Rekap Pengantaran per Driver (agregasi berdasarkan pesanan.id_driver) -->
+<div class="card shadow-sm border-0 rounded-4 bg-white mb-4">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+        <div class="fw-bold text-dark fs-6">
+            <i class="bi bi-graph-up-arrow text-success me-2" aria-hidden="true"></i><?= $id_driver_statistik !== null ? 'Rekap Pengantaran Saya' : 'Rekap Pengantaran Seluruh Driver' ?>
+        </div>
+        <span class="badge bg-success-subtle text-success border border-success-subtle">Total sepanjang waktu</span>
+    </div>
+    <?php if (empty($rekap_driver)): ?>
+        <div class="p-4 text-muted small">Belum ada akun driver terdaftar.</div>
+    <?php else: ?>
+        <div class="table-responsive">
+            <table class="table tabel-kartu align-middle mb-0">
+                <thead class="table-light small text-uppercase text-muted">
+                    <tr>
+                        <th class="ps-3">Driver</th>
+                        <th class="text-center">Selesai Diantar</th>
+                        <th class="text-center">Sedang Diantar</th>
+                        <th class="text-end pe-3">Nilai Pesanan Diantar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($rekap_driver as $rd): ?>
+                        <tr>
+                            <td data-label="Driver" class="ps-3">
+                                <div class="fw-semibold text-dark small"><?= e($rd['nama_driver']) ?></div>
+                                <div class="text-muted" style="font-size: 0.72rem;">@<?= e($rd['username']) ?></div>
+                            </td>
+                            <td data-label="Selesai Diantar" class="text-center fw-bold"><?= (int) $rd['total_selesai'] ?></td>
+                            <td data-label="Sedang Diantar" class="text-center"><?= (int) $rd['sedang_diantar'] ?></td>
+                            <td data-label="Nilai Pesanan Diantar" class="text-end pe-3 font-monospace fw-bold"><?= format_rupiah((float) $rd['total_nilai']) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
 </div>
 
 <!-- Alert Notifikasi -->

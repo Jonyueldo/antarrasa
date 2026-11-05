@@ -172,6 +172,13 @@ $antrean_dapur = ambil_semua_pesanan($conn, $paginasi_antrean['per_halaman'], $s
 // KPI total riwayat order dihitung dengan COUNT(*) (sebelumnya mentok di 40 baris)
 $total_riwayat_order = hitung_pesanan($conn);
 
+// Menu terlaris: merchant melihat menunya sendiri (+ menu tanpa pemilik), admin melihat semua
+$menu_terlaris = ambil_menu_terlaris(
+    $conn,
+    5,
+    (($pengguna['peran'] ?? '') === 'merchant') ? (int) $pengguna['id_pengguna'] : null
+);
+
 // "Tuntas Hari Ini" dihitung dari tanggal server, bukan dari N baris terakhir
 $pesanan_selesai_hari_ini = hitung_selesai_hari_ini($conn);
 $total_menu_tersedia = 0;
@@ -374,6 +381,31 @@ require_once __DIR__ . '/includes/header.php';
 
     <!-- KOLOM KANAN: MANAJEMEN MENU HIDANGAN CEPAT -->
     <div class="col-lg-6">
+        <!-- Menu Terlaris (SUM jumlah dari pesanan yang sudah dibayar/diproses) -->
+        <div class="card shadow-sm border-0 rounded-4 mb-4 bg-white p-4">
+            <h5 class="fw-bold mb-3 pb-2 border-bottom text-dark d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-trophy-fill text-warning me-2" aria-hidden="true"></i>Menu Terlaris</span>
+                <span class="badge bg-light text-secondary border small">Top <?= count($menu_terlaris) ?></span>
+            </h5>
+            <?php if (empty($menu_terlaris)): ?>
+                <p class="text-muted small mb-0">Belum ada penjualan yang dibayar. Menu terlaris akan muncul setelah ada pesanan diproses.</p>
+            <?php else: ?>
+                <ol class="list-unstyled mb-0">
+                    <?php foreach ($menu_terlaris as $urutan => $mt): ?>
+                        <li class="d-flex align-items-center gap-3 py-2 <?= $urutan > 0 ? 'border-top' : '' ?>">
+                            <span class="badge rounded-pill <?= $urutan === 0 ? 'bg-warning text-dark' : 'bg-light text-secondary border' ?>" style="min-width: 32px;">#<?= $urutan + 1 ?></span>
+                            <img src="<?= e(url_gambar_menu($mt)) ?>" alt="" class="rounded-3" style="width: 40px; height: 40px; object-fit: cover;">
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-semibold text-dark small text-truncate"><?= e($mt['nama_menu']) ?></div>
+                                <div class="text-muted" style="font-size: 0.75rem;"><?= format_rupiah((float) $mt['total_pendapatan']) ?></div>
+                            </div>
+                            <span class="fw-bold text-dark small text-nowrap"><?= (int) $mt['total_terjual'] ?> porsi</span>
+                        </li>
+                    <?php endforeach; ?>
+                </ol>
+            <?php endif; ?>
+        </div>
+
         <!-- Form Tambah Menu Cepat -->
         <div class="card shadow-sm border-0 rounded-4 mb-4 bg-white p-4">
             <h5 class="fw-bold mb-3 pb-2 border-bottom text-dark d-flex align-items-center">
