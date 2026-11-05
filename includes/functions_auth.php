@@ -139,7 +139,7 @@ function bersihkan_ref(string $ref): string
 
     $halaman_diizinkan = [
         'index.php', 'pesanan.php', 'pembayaran.php', 'status.php',
-        'riwayat.php', 'merchant.php', 'driver.php', 'admin.php',
+        'riwayat.php', 'merchant.php', 'driver.php', 'admin.php', 'laporan.php',
     ];
 
     $path = (string) parse_url($ref, PHP_URL_PATH);

@@ -36,12 +36,13 @@ $peran_aktif = $pengguna_aktif['peran'] ?? null;
     <!-- Kustomisasi CSS Modern AntarRasa (Super-App Style) -->
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
-<body class="<?= $halaman_saat_ini === 'admin.php' ? 'bg-light' : '' ?>">
+<?php $layout_admin = in_array($halaman_saat_ini, ['admin.php', 'laporan.php'], true); ?>
+<body class="<?= $layout_admin ? 'bg-light' : '' ?>">
 
 <?php if ($halaman_saat_ini === 'login.php' || $halaman_saat_ini === 'register.php'): ?>
     <!-- Halaman Auth Split-Screen Modern (Tanpa Navbar Default) -->
 
-<?php elseif ($halaman_saat_ini === 'admin.php'): ?>
+<?php elseif ($layout_admin): ?>
     <!-- =====================================================================
          LAYOUT ADMIN: EXECUTIVE BACKOFFICE (SIDEBAR KIRI GELAP #0F172A)
          ===================================================================== -->
@@ -58,13 +59,17 @@ $peran_aktif = $pengguna_aktif['peran'] ?? null;
             
             <div class="py-3 flex-grow-1">
                 <div class="px-3 mb-2 small text-uppercase text-secondary fw-bold" style="font-size: 0.7rem;">Menu Utama</div>
-                <a href="admin.php" class="admin-nav-item active">
+                <a href="admin.php" class="admin-nav-item <?= $halaman_saat_ini === 'admin.php' ? 'active' : '' ?>" <?= $halaman_saat_ini === 'admin.php' ? 'aria-current="page"' : '' ?>>
                     <i class="bi bi-speedometer2"></i>
                     <span class="admin-sidebar-text">Dashboard &amp; User</span>
                 </a>
-                <a href="#tabelSemuaPesanan" class="admin-nav-item">
+                <a href="admin.php#tabelSemuaPesanan" class="admin-nav-item">
                     <i class="bi bi-receipt-cutoff"></i>
                     <span class="admin-sidebar-text">Monitoring Order</span>
+                </a>
+                <a href="laporan.php" class="admin-nav-item <?= $halaman_saat_ini === 'laporan.php' ? 'active' : '' ?>" <?= $halaman_saat_ini === 'laporan.php' ? 'aria-current="page"' : '' ?>>
+                    <i class="bi bi-file-earmark-bar-graph"></i>
+                    <span class="admin-sidebar-text">Laporan Transaksi</span>
                 </a>
 
                 <div class="px-3 mt-4 mb-2 small text-uppercase text-secondary fw-bold" style="font-size: 0.7rem;">Pintas Peran Ekosistem</div>

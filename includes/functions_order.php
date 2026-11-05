@@ -1338,6 +1338,123 @@ function hitung_statistik_admin($conn, ?string $dari = null, ?string $sampai = n
     return $stats;
 }
 
+// =====================================================================
+// LAPORAN TRANSAKSI ADMIN (FILTER TANGGAL & STATUS, EKSPOR CSV)
+// =====================================================================
+
+/**
+ * Menyusun klausa WHERE laporan: rentang tanggal_pesanan + status (whitelist)
+ *
+ * @param string|null $dari Y-m-d
+ * @param string|null $sampai Y-m-d
+ * @param string|null $status Salah satu STATUS_PESANAN_VALID atau null = semua
+ * @return array{0: string, 1: string, 2: array}
+ */
+function klausa_laporan(?string $dari, ?string $sampai, ?string $status): array
+{
+    [$syarat_tgl, $tipe, $nilai] = klausa_rentang_tanggal(bersihkan_tanggal($dari), bersihkan_tanggal($sampai));
+    $syarat = $syarat_tgl !== '' ? [str_replace('tanggal_pesanan', 'p.tanggal_pesanan', $syarat_tgl)] : [];
+
+    if ($status !== null && in_array($status, STATUS_PESANAN_VALID, true)) {
+        $syarat[] = 'p.status_pesanan = ?';
+        $tipe .= 's';
+        $nilai[] = $status;
+    }
+
+    return [empty($syarat) ? '' : ' WHERE ' . implode(' AND ', $syarat), $tipe, $nilai];
+}
+
+/**
+ * Ringkasan laporan: jumlah transaksi, total nominal, dan pendapatan (Diproses/Dikirim/Selesai)
+ *
+ * @param mysqli $conn
+ * @param string|null $dari
+ * @param string|null $sampai
+ * @param string|null $status
+ * @return array ['jumlah' => int, 'nominal' => float, 'pendapatan' => float]
+ */
+function hitung_ringkasan_laporan($conn, ?string $dari, ?string $sampai, ?string $status): array
+{
+    [$where, $tipe, $nilai] = klausa_laporan($dari, $sampai, $status);
+    $sql = "SELECT COUNT(*) AS jumlah, COALESCE(SUM(p.total_harga), 0) AS nominal,
+                   COALESCE(SUM(CASE WHEN p.status_pesanan IN ('Diproses', 'Dikirim', 'Selesai') THEN p.total_harga ELSE 0 END), 0) AS pendapatan
+            FROM pesanan p" . $where;
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        return ['jumlah' => 0, 'nominal' => 0.0, 'pendapatan' => 0.0];
+    }
+    if ($tipe !== '') {
+        mysqli_stmt_bind_param($stmt, $tipe, ...$nilai);
+    }
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $baris = $res !== false ? mysqli_fetch_assoc($res) : null;
+    mysqli_stmt_close($stmt);
+
+    return [
+        'jumlah'     => (int) ($baris['jumlah'] ?? 0),
+        'nominal'    => (float) ($baris['nominal'] ?? 0),
+        'pendapatan' => (float) ($baris['pendapatan'] ?? 0),
+    ];
+}
+
+/**
+ * Mengambil baris laporan transaksi (pemesan, kurir, metode bayar) sesuai filter
+ *
+ * @param mysqli $conn
+ * @param string|null $dari
+ * @param string|null $sampai
+ * @param string|null $status
+ * @param int|null $limit null = semua baris (untuk ekspor CSV)
+ * @param int $offset
+ * @return array
+ */
+function ambil_laporan_pesanan($conn, ?string $dari, ?string $sampai, ?string $status, ?int $limit = null, int $offset = 0): array
+{
+    [$where, $tipe, $nilai] = klausa_laporan($dari, $sampai, $status);
+    $sql = "SELECT p.id_pesanan, p.tanggal_pesanan, p.alamat_pengiriman, p.total_harga, p.status_pesanan,
+                   p.metode_bayar, p.waktu_bayar, p.waktu_selesai,
+                   u.nama_lengkap AS nama_pemesan, u.username AS username_pemesan,
+                   d.nama_lengkap AS nama_driver
+            FROM pesanan p
+            LEFT JOIN pengguna u ON p.id_pengguna = u.id_pengguna
+            LEFT JOIN pengguna d ON p.id_driver = d.id_pengguna"
+        . $where . " ORDER BY p.tanggal_pesanan DESC, p.id_pesanan DESC";
+
+    if ($limit !== null) {
+        $sql .= " LIMIT ? OFFSET ?";
+        $tipe .= 'ii';
+        $nilai[] = max(1, $limit);
+        $nilai[] = max(0, $offset);
+    }
+
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        return [];
+    }
+    if ($tipe !== '') {
+        mysqli_stmt_bind_param($stmt, $tipe, ...$nilai);
+    }
+    mysqli_stmt_execute($stmt);
+    $res = mysqli_stmt_get_result($stmt);
+    $data = $res !== false ? mysqli_fetch_all($res, MYSQLI_ASSOC) : [];
+    mysqli_stmt_close($stmt);
+    return $data;
+}
+
+/**
+ * Mengamankan satu sel CSV dari formula injection: nilai yang diawali = + - @ TAB CR
+ * diberi awalan tanda kutip tunggal agar tidak dieksekusi sebagai rumus oleh Excel.
+ *
+ * @param mixed $nilai
+ * @return string
+ */
+function sel_csv_aman(mixed $nilai): string
+{
+    $teks = (string) ($nilai ?? '');
+    return ($teks !== '' && str_contains("=+-@\t\r", $teks[0])) ? "'" . $teks : $teks;
+}
+
 /**
  * Menghitung pesanan yang BENAR-BENAR selesai hari ini (tanggal server).
  * Memakai waktu_selesai; data lama tanpa waktu_selesai jatuh ke tanggal_pesanan.

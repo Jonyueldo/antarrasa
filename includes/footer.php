@@ -4,7 +4,7 @@ declare(strict_types=1);
 $halaman_saat_ini = basename($_SERVER['PHP_SELF'] ?? '');
 ?>
 
-<?php if ($halaman_saat_ini === 'admin.php'): ?>
+<?php if (in_array($halaman_saat_ini, ['admin.php', 'laporan.php'], true)): ?>
     </main>
     <footer class="py-3 px-4 bg-white border-top text-muted small d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
         <div>
