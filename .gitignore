@@ -2,8 +2,8 @@
 # Git Ignore AntarRasa
 # ==============================================================================
 
-# File Konfigurasi Lokal (Opsional: aktifkan jika ada password khusus)
-# config/database.php
+# File Konfigurasi Lokal (berisi kredensial; salin dari config/database.example.php)
+config/database.php
 
 # File Log & Temp
 *.log

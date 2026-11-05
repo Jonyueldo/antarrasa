@@ -127,9 +127,15 @@ c:\xampp\htdocs\antarrasa\
 
 1. Pastikan seluruh berkas berada di `C:\xampp\htdocs\antarrasa`.
 2. Buka **XAMPP Control Panel**, lalu aktifkan modul **Apache** dan **MySQL** (keduanya *Running*).
-3. Buat database `antarrasa_db` di `http://localhost/phpmyadmin` (impor file `database/antarrasa.sql` atau biarkan skrip migrasi otomatis berjalan).
-4. Buka peramban di:
+3. Buat file konfigurasi lokal dari template (file ini **tidak** di-commit ke git):
+   ```
+   copy config\database.example.php config\database.php      (Windows)
+   cp config/database.example.php config/database.php        (macOS/Linux)
+   ```
+   Sesuaikan kredensial di dalamnya bila MySQL Anda tidak memakai default XAMPP (`root` tanpa password).
+4. Buat database `antarrasa_db` di `http://localhost/phpmyadmin` (impor file `database/antarrasa.sql` atau biarkan skrip migrasi otomatis berjalan).
+5. Buka peramban di:
    ```
    http://localhost/antarrasa
    ```
-5. Kunjungi `http://localhost/antarrasa/login.php` dan gunakan salah satu tombol demo untuk mengevaluasi alur setiap peran.
+6. Kunjungi `http://localhost/antarrasa/login.php` dan gunakan salah satu tombol demo untuk mengevaluasi alur setiap peran.
