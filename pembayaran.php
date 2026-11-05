@@ -32,18 +32,30 @@ if ($pesanan_cek !== null && !boleh_akses_pesanan(ambil_pengguna_login(), $pesan
 
 // 1. Tangani Aksi Simulasi Pembayaran (Proses 2.0)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['aksi']) && $_POST['aksi'] === 'bayar_pesanan') {
-    $metode_bayar = isset($_POST['metode_bayar']) ? (string) $_POST['metode_bayar'] : 'GoPay';
+    $metode_bayar = isset($_POST['metode_bayar']) ? (string) $_POST['metode_bayar'] : '';
 
     if ($pesanan_cek !== null) {
         if ($pesanan_cek['status_pesanan'] === 'Menunggu') {
-            // Perbarui status pesanan di D2 (PESANAN) menjadi 'Diproses'
-            $sukses_update = update_status_pesanan($conn, $id_pesanan, 'Diproses');
-            if ($sukses_update) {
-                // Alihkan ke Halaman Status & Pelacakan (Proses 3.0)
-                header("Location: status.php?id=" . $id_pesanan . "&bayar_sukses=1&metode=" . urlencode($metode_bayar));
-                exit;
+            if (!in_array($metode_bayar, METODE_BAYAR_VALID, true)) {
+                $pesan_error = 'Silakan pilih metode pembayaran yang tersedia.';
             } else {
-                $pesan_error = "Gagal memperbarui status pembayaran pada database.";
+                // Bukti bayar opsional; divalidasi MIME & ukuran, disimpan dengan nama acak
+                $folder_bukti = __DIR__ . '/assets/uploads/bukti';
+                $hasil_upload = simpan_bukti_bayar($_FILES['bukti_bayar'] ?? null, $folder_bukti);
+
+                if (!$hasil_upload['sukses']) {
+                    $pesan_error = $hasil_upload['pesan'];
+                } elseif (bayar_pesanan($conn, $id_pesanan, $metode_bayar, $hasil_upload['nama_file'])) {
+                    // Alihkan ke Halaman Status & Pelacakan (Proses 3.0)
+                    header("Location: status.php?id=" . $id_pesanan . "&bayar_sukses=1");
+                    exit;
+                } else {
+                    // Transaksi gagal: buang file bukti yang terlanjur tersimpan
+                    if ($hasil_upload['nama_file'] !== null) {
+                        @unlink($folder_bukti . '/' . $hasil_upload['nama_file']);
+                    }
+                    $pesan_error = "Gagal mencatat pembayaran. Pesanan mungkin sudah dibayar atau diproses.";
+                }
             }
         } else {
             // Sudah dibayar sebelumnya
@@ -217,9 +229,22 @@ require_once __DIR__ . '/includes/header.php';
                     <i class="bi bi-patch-check-fill fs-1"></i>
                 </div>
                 <h4 class="fw-extrabold text-success mb-1">Tagihan Telah Lunas!</h4>
-                <p class="text-muted small mb-4">
+                <p class="text-muted small mb-3">
                     Pesanan #<?= $id_pesanan ?> saat ini berstatus <strong><?= e($pesanan['status_pesanan']) ?></strong> dan dapur restoran sedang mempersiapkan pesanan Anda.
                 </p>
+                <?php if (!empty($pesanan['metode_bayar'])): ?>
+                    <div class="small text-start bg-light border rounded-3 p-3 mb-4">
+                        <div><span class="text-muted">Metode:</span> <strong><?= e($pesanan['metode_bayar']) ?></strong></div>
+                        <?php if (!empty($pesanan['waktu_bayar'])): ?>
+                            <div><span class="text-muted">Dibayar:</span> <?= e(date('d M Y, H:i', strtotime((string) $pesanan['waktu_bayar']))) ?> WIB</div>
+                        <?php endif; ?>
+                        <?php if (!empty($pesanan['bukti_bayar'])): ?>
+                            <div><span class="text-muted">Bukti:</span>
+                                <a href="assets/uploads/bukti/<?= e(rawurlencode((string) $pesanan['bukti_bayar'])) ?>" target="_blank" rel="noopener">Lihat bukti bayar</a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
                 <a href="status.php?id=<?= $id_pesanan ?>" class="btn btn-primary-custom py-3 rounded-pill fw-bold shadow-sm d-inline-flex align-items-center justify-content-center gap-2">
                     <i class="bi bi-geo-alt-fill"></i>
                     <span>Lacak Pengantaran Real-Time</span>
@@ -235,7 +260,7 @@ require_once __DIR__ . '/includes/header.php';
                     <span class="badge bg-danger-subtle text-danger fw-bold">E-Wallet &amp; QRIS</span>
                 </div>
 
-                <form method="POST" action="pembayaran.php">
+                <form method="POST" action="pembayaran.php" enctype="multipart/form-data">
                     <?= field_csrf() ?>
                     <input type="hidden" name="aksi" value="bayar_pesanan">
                     <input type="hidden" name="id_pesanan" value="<?= $id_pesanan ?>">
@@ -288,6 +313,16 @@ require_once __DIR__ . '/includes/header.php';
                             </div>
                             <span class="badge bg-success-subtle text-success fw-bold">Semua Bank</span>
                         </label>
+                    </div>
+
+                    <!-- Unggah Bukti Bayar (Opsional) -->
+                    <div class="mb-3">
+                        <label for="bukti_bayar" class="form-label small fw-bold text-dark mb-1">
+                            <i class="bi bi-paperclip me-1"></i>Bukti Pembayaran <span class="text-muted fw-normal">(opsional)</span>
+                        </label>
+                        <input type="file" class="form-control form-control-sm" id="bukti_bayar" name="bukti_bayar"
+                               accept="image/jpeg,image/png,image/webp,application/pdf">
+                        <div class="form-text" style="font-size: 0.72rem;">Format JPG, PNG, WEBP, atau PDF. Maksimal 2 MB.</div>
                     </div>
 
                     <!-- Jumlah Tagihan -->

@@ -392,12 +392,13 @@ function simpan_pesanan($conn, string $alamat, array $detail_items, ?int $id_pen
  */
 function ambil_pesanan_by_id($conn, int $id_pesanan): ?array
 {
-    $sql = "SELECT p.id_pesanan, p.id_pengguna, p.tanggal_pesanan, p.alamat_pengiriman, 
-                   p.total_harga, p.status_pesanan,
+    $sql = "SELECT p.id_pesanan, p.id_pengguna, p.id_driver, p.tanggal_pesanan, p.alamat_pengiriman,
+                   p.total_harga, p.status_pesanan, p.metode_bayar, p.waktu_bayar, p.bukti_bayar,
+                   p.waktu_diproses, p.waktu_dikirim, p.waktu_selesai,
                    u.nama_lengkap AS nama_pemesan, u.username AS username_pemesan
-            FROM pesanan p 
+            FROM pesanan p
             LEFT JOIN pengguna u ON p.id_pengguna = u.id_pengguna
-            WHERE p.id_pesanan = ? 
+            WHERE p.id_pesanan = ?
             LIMIT 1";
     
     $stmt = mysqli_prepare($conn, $sql);
@@ -639,6 +640,122 @@ function update_status_pesanan($conn, int $id_pesanan, string $status_baru): boo
     mysqli_stmt_close($stmt);
 
     return $sukses && ($affected > 0);
+}
+
+// =====================================================================
+// PEMBAYARAN (PROSES 2.0)
+// =====================================================================
+
+/** Metode pembayaran yang diterima (selaras dengan pilihan di pembayaran.php) */
+const METODE_BAYAR_VALID = ['GoPay', 'ShopeePay', 'OVO', 'QRIS'];
+
+/** Batas ukuran file bukti bayar: 2 MB */
+const BATAS_UKURAN_BUKTI = 2 * 1024 * 1024;
+
+/** Tipe MIME bukti bayar yang diterima => ekstensi file hasil generate */
+const MIME_BUKTI_VALID = [
+    'image/jpeg'      => 'jpg',
+    'image/png'       => 'png',
+    'image/webp'      => 'webp',
+    'application/pdf' => 'pdf',
+];
+
+/**
+ * Memvalidasi dan menyimpan file bukti bayar (opsional) dari $_FILES.
+ * - MIME diperiksa dari ISI file (finfo), bukan dari nama/ekstensi kiriman browser
+ * - Nama file di-generate acak; nama asli dari pengguna tidak pernah dipakai
+ *
+ * @param array|null $file Elemen $_FILES['bukti_bayar'] atau null
+ * @param string $folder_tujuan Folder absolut penyimpanan
+ * @return array ['sukses' => bool, 'nama_file' => ?string, 'pesan' => string]
+ */
+function simpan_bukti_bayar(?array $file, string $folder_tujuan): array
+{
+    // Tidak ada file yang dipilih: bukti bayar bersifat opsional
+    if ($file === null || (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return ['sukses' => true, 'nama_file' => null, 'pesan' => ''];
+    }
+
+    $kode_error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($kode_error === UPLOAD_ERR_INI_SIZE || $kode_error === UPLOAD_ERR_FORM_SIZE) {
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Ukuran file bukti bayar maksimal 2 MB.'];
+    }
+    if ($kode_error !== UPLOAD_ERR_OK) {
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Unggahan bukti bayar gagal. Silakan coba lagi.'];
+    }
+
+    $path_sementara = (string) ($file['tmp_name'] ?? '');
+    if ($path_sementara === '' || !is_uploaded_file($path_sementara)) {
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'File bukti bayar tidak valid.'];
+    }
+
+    $ukuran = (int) ($file['size'] ?? 0);
+    if ($ukuran <= 0 || $ukuran > BATAS_UKURAN_BUKTI) {
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Ukuran file bukti bayar maksimal 2 MB.'];
+    }
+
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime = $finfo !== false ? (string) finfo_file($finfo, $path_sementara) : '';
+    if (!isset(MIME_BUKTI_VALID[$mime])) {
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Format bukti bayar harus JPG, PNG, WEBP, atau PDF.'];
+    }
+
+    if (!is_dir($folder_tujuan) && !mkdir($folder_tujuan, 0755, true) && !is_dir($folder_tujuan)) {
+        error_log('[AntarRasa] Folder bukti bayar tidak dapat dibuat: ' . $folder_tujuan);
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Penyimpanan bukti bayar tidak tersedia.'];
+    }
+
+    $nama_file = 'bukti_' . bin2hex(random_bytes(16)) . '.' . MIME_BUKTI_VALID[$mime];
+    if (!move_uploaded_file($path_sementara, $folder_tujuan . DIRECTORY_SEPARATOR . $nama_file)) {
+        error_log('[AntarRasa] Gagal memindahkan bukti bayar ke ' . $folder_tujuan);
+        return ['sukses' => false, 'nama_file' => null, 'pesan' => 'Gagal menyimpan file bukti bayar.'];
+    }
+
+    return ['sukses' => true, 'nama_file' => $nama_file, 'pesan' => ''];
+}
+
+/**
+ * Mencatat pembayaran pesanan: status Menunggu -> Diproses (lewat state machine)
+ * sekaligus menyimpan metode_bayar, waktu_bayar, dan bukti_bayar dalam SATU transaksi.
+ *
+ * @param mysqli $conn
+ * @param int $id_pesanan
+ * @param string $metode_bayar Salah satu METODE_BAYAR_VALID
+ * @param string|null $bukti_bayar Nama file hasil simpan_bukti_bayar() atau null
+ * @return bool
+ */
+function bayar_pesanan($conn, int $id_pesanan, string $metode_bayar, ?string $bukti_bayar = null): bool
+{
+    if (!in_array($metode_bayar, METODE_BAYAR_VALID, true)) {
+        return false;
+    }
+
+    mysqli_begin_transaction($conn);
+
+    $pesanan = ambil_pesanan_by_id($conn, $id_pesanan);
+    if ($pesanan === null || (string) $pesanan['status_pesanan'] !== 'Menunggu'
+        || !update_status_pesanan($conn, $id_pesanan, 'Diproses')) {
+        mysqli_rollback($conn);
+        return false;
+    }
+
+    $sql = "UPDATE pesanan SET metode_bayar = ?, waktu_bayar = NOW(), bukti_bayar = ? WHERE id_pesanan = ?";
+    $stmt = mysqli_prepare($conn, $sql);
+    if (!$stmt) {
+        mysqli_rollback($conn);
+        return false;
+    }
+
+    mysqli_stmt_bind_param($stmt, "ssi", $metode_bayar, $bukti_bayar, $id_pesanan);
+    $sukses = mysqli_stmt_execute($stmt) && mysqli_stmt_affected_rows($stmt) > 0;
+    mysqli_stmt_close($stmt);
+
+    if (!$sukses || !mysqli_commit($conn)) {
+        mysqli_rollback($conn);
+        return false;
+    }
+
+    return true;
 }
 
 /**
