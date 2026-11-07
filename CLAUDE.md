@@ -6,8 +6,9 @@
 - **Konvensi Penamaan**: Gunakan format `snake_case` berbahasa Indonesia untuk nama variabel, fungsi, dan kolom database agar konsisten dengan kode yang ada (contoh: `$id_pengguna`, `$total_harga`, `ambil_semua_menu()`).
 
 ## 2. Aturan Teknis & Arsitektur
-- **Prinsip Minimalis (20% Core MVP)**: Buat kode seringkas mungkin, gabungkan file/fungsi helper yang tidak perlu, hindari fitur tambahan di luar 4 alur utama (autentikasi, katalog & CRUD menu, keranjang & checkout, riwayat & status pesanan), dan **DILARANG** membuat fitur atau tombol Akun Demo.
-- **Peran**: hanya `admin` dan `pelanggan`.
+- **Prinsip Minimalis (20% Core MVP)**: Buat kode seringkas mungkin, gabungkan file/fungsi helper yang tidak perlu, hindari fitur tambahan di luar alur yang tercantum di `ROADMAP.md`, dan **DILARANG** membuat fitur atau tombol Akun Demo.
+- **Peran**: `pelanggan`, `merchant`, `driver`, `admin`. Pengguna pertama yang mendaftar otomatis menjadi `admin`.
+- **Alur inti**: moderasi menu merchant oleh admin, pengantaran driver bertahap (`menunggu_driver` → `menuju_merchant` → `diantar` → `selesai`, atau `ditolak_driver`) dengan peta Leaflet + OpenStreetMap, ulasan bintang 1-5, pelaporan akun, serta suspend/ban akun oleh admin.
 - **PHP 8.5.12 Prosedural Murni**:
   - Wajib menyertakan `declare(strict_types=1);` di baris paling atas setiap file PHP.
   - Seluruh sintaks, fungsi bawaan, tipe data parameter/return, dan penanganan error wajib 100% kompatibel dengan standar **PHP 8.5.12** tanpa memunculkan *deprecated warnings*.
@@ -18,7 +19,7 @@
 - **Keamanan Output (Anti-XSS)**:
   - Wajib membungkus seluruh data dinamis yang ditampilkan ke HTML dengan `htmlspecialchars((string) $nilai, ENT_QUOTES, 'UTF-8')`.
 - **Konsistensi Skema Database**:
-  - Pertahankan konsistensi nama tabel utama sesuai `database/antarrasa.sql`, yaitu **huruf kecil** (`pengguna`, `menu`, `pesanan`, `detail_pesanan`), baik di DDL maupun di seluruh query PHP. Nama tabel di MySQL/MariaDB bersifat case-sensitive di macOS/Linux, sehingga query `FROM PENGGUNA` akan gagal di sana walaupun berjalan di Windows.
+  - Pertahankan konsistensi nama tabel utama sesuai `database/antarrasa.sql`, yaitu **huruf kecil** (`pengguna`, `menu`, `pesanan`, `detail_pesanan`, `laporan`), baik di DDL maupun di seluruh query PHP. Nama tabel di MySQL/MariaDB bersifat case-sensitive di macOS/Linux, sehingga query `FROM PENGGUNA` akan gagal di sana walaupun berjalan di Windows.
 
 ## 3. Alur Kerja Berdasarkan `ROADMAP.md`
 - Kerjakan tugas pada `ROADMAP.md` secara bertahap sesuai urutan prioritas atau poin spesifik yang diminta pengguna.
