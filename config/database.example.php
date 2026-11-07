@@ -1,87 +1,14 @@
 <?php
 declare(strict_types=1);
 
-/**
- * TEMPLATE Konfigurasi Koneksi Basis Data MySQLi (Murni Prosedural)
- *
- * Cara pakai:
- *   1. Salin berkas ini menjadi 'config/database.php'
- *        Windows : copy config\database.example.php config\database.php
- *        macOS   : cp config/database.example.php config/database.php
- *   2. Sesuaikan kredensial di bagian 2 dengan MySQL/MariaDB lokal Anda.
- *
- * 'config/database.php' sengaja TIDAK di-commit (lihat .gitignore) agar
- * kredensial tiap anggota tim tidak saling menimpa dan tidak bocor ke repository.
- */
-
-// 1. Matikan pelaporan exception otomatis berbasis objek pada mysqli
-// Ini memastikan seluruh penanganan error menggunakan pengecekan prosedural
+// Salin menjadi config/database.php lalu sesuaikan kredensial (file itu tidak di-commit).
 mysqli_report(MYSQLI_REPORT_OFF);
 
-// 2. Kredensial Basis Data (default XAMPP: user root, password kosong)
-$db_host = 'localhost';
-$db_user = 'root';
-$db_pass = '';
-$db_name = 'antarrasa_db';
-$db_port = 3306;
-
-// 2b. Mode demo (quick login 1-klik & panel simulasi status untuk admin).
-// Default: hanya aktif jika diakses dari komputer lokal (127.0.0.1 / ::1).
-// Di server publik, ubah menjadi: define('MODE_DEMO', false);
-define('MODE_DEMO', in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true));
-
-// 3. Inisialisasi koneksi prosedural
-$conn = mysqli_connect($db_host, $db_user, $db_pass, $db_name, $db_port);
-
-// 4. Penanganan kegagalan koneksi secara prosedural
+$conn = mysqli_connect('localhost', 'root', '', 'antarrasa_db', 3306);
 if (!$conn) {
-    $error_pesan = mysqli_connect_error();
-    $error_kode = mysqli_connect_errno();
-
-    // Tampilkan pesan kesalahan ramah lingkungan dan panduan instalasi
     http_response_code(500);
-    ?>
-    <!DOCTYPE html>
-    <html lang="id">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Koneksi Database Gagal - AntarRasa</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    </head>
-    <body class="bg-light py-5">
-        <div class="container">
-            <div class="card shadow-sm border-danger mx-auto" style="max-width: 650px;">
-                <div class="card-header bg-danger text-white">
-                    <h5 class="mb-0">Kesalahan Koneksi Basis Data (MySQLi)</h5>
-                </div>
-                <div class="card-body">
-                    <p class="text-danger fw-semibold">Tidak dapat terhubung ke server database MySQL/MariaDB:</p>
-                    <div class="alert alert-secondary font-monospace small">
-                        [Kode <?= htmlspecialchars((string) $error_kode, ENT_QUOTES, 'UTF-8') ?>] <?= htmlspecialchars((string) $error_pesan, ENT_QUOTES, 'UTF-8') ?>
-                    </div>
-                    <h6>Langkah Penyelesaian:</h6>
-                    <ol class="small text-muted">
-                        <li>Pastikan modul <strong>MySQL</strong> pada <strong>XAMPP Control Panel</strong> sudah dalam status <strong>Running</strong>.</li>
-                        <li>Siapkan basis data <code>antarrasa_db</code> dengan menjalankan <code>database/tools/setup</code>: <code>database\tools\setup.bat</code> (Windows) atau <code>sh database/tools/setup.sh</code> (macOS/Linux).</li>
-                        <li>Periksa kredensial pada file <code>config/database.php</code> (default XAMPP: user: <code>root</code>, password: <em>kosong</em>).</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </body>
-    </html>
-    <?php
-    exit;
+    exit('Koneksi database gagal. Impor database/antarrasa.sql lalu periksa config/database.php.');
 }
-
-// 5. Atur karakter set utf8mb4 untuk dukungan teks nusantara dan simbol penuh
 mysqli_set_charset($conn, 'utf8mb4');
 
-// 6. Pastikan autocommit aktif agar setiap manipulasi tersimpan permanen ke MySQL
-mysqli_autocommit($conn, true);
-
-// 7. Muat modul autentikasi & admin.
-// Skema TIDAK lagi dibuat/diubah otomatis per request; gunakan database/tools/setup.
-require_once __DIR__ . '/../includes/functions_auth.php';
-require_once __DIR__ . '/../includes/functions_admin.php';
+require_once __DIR__ . '/../includes/fungsi.php';
