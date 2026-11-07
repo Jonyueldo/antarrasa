@@ -169,6 +169,24 @@ function wajib_login(mysqli $conn, string ...$peran): array
     return ['id' => (int) $u['id_pengguna'], 'nama' => $u['nama'], 'peran' => $u['peran']];
 }
 
+// Simpan gambar menu ke uploads/menu/ dengan nama acak.
+// null = tidak ada file, false = file tidak valid, string = path tersimpan.
+function unggah_gambar(array $file): string|false|null
+{
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    if ($file['error'] !== UPLOAD_ERR_OK || $file['size'] > 2 * 1024 * 1024) {
+        return false;
+    }
+    $ext = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'][mime_content_type($file['tmp_name'])] ?? null;
+    if ($ext === null) {
+        return false;
+    }
+    $path = 'uploads/menu/' . bin2hex(random_bytes(12)) . ".$ext";
+    return move_uploaded_file($file['tmp_name'], __DIR__ . '/../' . $path) ? $path : false;
+}
+
 // ---- Keranjang (session: id_menu => jumlah, satu merchant) ----
 
 function jumlah_keranjang(): int

@@ -1,0 +1,5 @@
+# Folder unggahan: jangan pernah mengeksekusi skrip
+<FilesMatch "\.(php|phtml|phar|phps)$">
+    Require all denied
+</FilesMatch>
+Options -Indexes

@@ -5,11 +5,9 @@
 # File Konfigurasi Lokal (berisi kredensial; salin dari config/database.example.php)
 config/database.php
 
-# Unggahan pengguna (bukti bayar) tidak di-commit; hanya aturan keamanan foldernya
-assets/uploads/bukti/*
-!assets/uploads/bukti/.htaccess
-assets/uploads/menu/*
-!assets/uploads/menu/.htaccess
+# Unggahan gambar menu tidak di-commit; hanya aturan keamanan foldernya
+uploads/menu/*
+!uploads/menu/.htaccess
 
 # File Log & Temp
 *.log
