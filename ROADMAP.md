@@ -7,4 +7,4 @@ Setiap poin dikerjakan satu per satu, diverifikasi dengan `C:\xampp\php\php.exe 
 - [x] 2. Sederhanakan Autentikasi (Login, Register, Logout) untuk peran `admin` dan `pelanggan`.
 - [x] 3. Sederhanakan Katalog & CRUD Menu (`MENU`).
 - [x] 4. Sederhanakan Keranjang Session & Checkout Pesanan (`PESANAN` & `DETAIL_PESANAN`).
-- [ ] 5. Sederhanakan Riwayat & Update Status Pesanan (`Menunggu`, `Diproses`, `Selesai`).
+- [x] 5. Sederhanakan Riwayat & Update Status Pesanan (`Menunggu`, `Diproses`, `Selesai`).
