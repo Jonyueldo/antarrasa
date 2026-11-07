@@ -6,6 +6,8 @@
 - **Konvensi Penamaan**: Gunakan format `snake_case` berbahasa Indonesia untuk nama variabel, fungsi, dan kolom database agar konsisten dengan kode yang ada (contoh: `$id_pengguna`, `$total_harga`, `ambil_semua_menu()`).
 
 ## 2. Aturan Teknis & Arsitektur
+- **Prinsip Minimalis (20% Core MVP)**: Buat kode seringkas mungkin, gabungkan file/fungsi helper yang tidak perlu, hindari fitur tambahan di luar 4 alur utama (autentikasi, katalog & CRUD menu, keranjang & checkout, riwayat & status pesanan), dan **DILARANG** membuat fitur atau tombol Akun Demo.
+- **Peran**: hanya `admin` dan `pelanggan`.
 - **PHP 8.5.12 Prosedural Murni**:
   - Wajib menyertakan `declare(strict_types=1);` di baris paling atas setiap file PHP.
   - Seluruh sintaks, fungsi bawaan, tipe data parameter/return, dan penanganan error wajib 100% kompatibel dengan standar **PHP 8.5.12** tanpa memunculkan *deprecated warnings*.
