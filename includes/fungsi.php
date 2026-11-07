@@ -125,12 +125,12 @@ function eksekusi(mysqli $conn, string $sql, string $tipe = '', array $param = [
 
 // ---- Akun & sesi ----
 
-// Cari pengguna berdasarkan id atau email; sisa_detik = sisa waktu suspend (dihitung di MySQL).
-function cari_pengguna(mysqli $conn, bool $by_email, int|string $nilai): ?array
+// Cari pengguna berdasarkan id atau username; sisa_detik = sisa waktu suspend (dihitung di MySQL).
+function cari_pengguna(mysqli $conn, bool $by_username, int|string $nilai): ?array
 {
-    $kolom = $by_email ? 'email' : 'id_pengguna';
+    $kolom = $by_username ? 'username' : 'id_pengguna';
     return ambil_satu($conn, "SELECT *, GREATEST(COALESCE(TIMESTAMPDIFF(SECOND, NOW(), suspend_sampai), 0), 0) AS sisa_detik
-        FROM pengguna WHERE $kolom = ?", $by_email ? 's' : 'i', [$nilai]);
+        FROM pengguna WHERE $kolom = ?", $by_username ? 's' : 'i', [$nilai]);
 }
 
 // Pesan penolakan bila akun diban atau masih disuspend; null jika boleh masuk.

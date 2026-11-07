@@ -148,12 +148,12 @@ require __DIR__ . '/includes/header.php';
 </div>
 <div class="table-responsive">
     <table class="table bg-white align-middle">
-        <thead><tr><th>Nama</th><th>Email</th><th>Peran</th><th>Status</th><th>Tindakan</th></tr></thead>
+        <thead><tr><th>Nama</th><th>Username</th><th>Peran</th><th>Status</th><th>Tindakan</th></tr></thead>
         <tbody>
         <?php foreach ($akun as $a): ?>
             <tr>
                 <td><?= e($a['nama']) ?></td>
-                <td><?= e($a['email']) ?></td>
+                <td><?= e($a['username']) ?></td>
                 <td><?= e($a['peran']) ?></td>
                 <td>
                     <?php if ($a['status_akun'] === 'ban_permanen'): ?><span class="badge bg-danger">Ban permanen</span>

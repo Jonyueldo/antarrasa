@@ -13,23 +13,23 @@ $galat = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     cek_csrf();
     $nama = trim((string) ($_POST['nama'] ?? ''));
-    $email = trim((string) ($_POST['email'] ?? ''));
+    $username = trim((string) ($_POST['username'] ?? ''));
     $password = (string) ($_POST['password'] ?? '');
     $peran = (string) ($_POST['peran'] ?? '');
 
-    if ($nama === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || !isset($pilihan_peran[$peran])) {
-        $galat = 'Nama, email yang valid, dan peran wajib diisi.';
+    if ($nama === '' || !preg_match('/^[A-Za-z0-9_]{4,50}$/', $username) || !isset($pilihan_peran[$peran])) {
+        $galat = 'Nama dan peran wajib diisi; username 4-50 karakter (huruf, angka, garis bawah).';
     } elseif (strlen($password) < 6 || $password !== (string) ($_POST['konfirmasi'] ?? '')) {
         $galat = 'Kata sandi minimal 6 karakter dan harus sama dengan konfirmasi.';
-    } elseif (cari_pengguna($conn, true, $email)) {
-        $galat = 'Email sudah terdaftar.';
+    } elseif (cari_pengguna($conn, true, $username)) {
+        $galat = 'Username sudah dipakai.';
     } else {
         // Pengguna pertama otomatis menjadi admin.
         if ((int) ambil_satu($conn, 'SELECT COUNT(*) AS n FROM pengguna')['n'] === 0) {
             $peran = 'admin';
         }
         $hash = password_hash($password, PASSWORD_DEFAULT);
-        if (eksekusi($conn, 'INSERT INTO pengguna (nama, email, password, peran) VALUES (?, ?, ?, ?)', 'ssss', [$nama, $email, $hash, $peran]) > 0) {
+        if (eksekusi($conn, 'INSERT INTO pengguna (nama, username, password, peran) VALUES (?, ?, ?, ?)', 'ssss', [$nama, $username, $hash, $peran]) > 0) {
             masuk_sesi(['id_pengguna' => mysqli_insert_id($conn), 'nama' => $nama, 'peran' => $peran]);
             alihkan(['admin' => 'admin.php', 'merchant' => 'merchant.php', 'driver' => 'riwayat.php'][$peran] ?? 'index.php');
         }
@@ -47,8 +47,8 @@ require __DIR__ . '/includes/header.php';
         <?= input_csrf() ?>
         <label class="form-label" for="nama">Nama</label>
         <input class="form-control mb-3" id="nama" name="nama" required value="<?= e($_POST['nama'] ?? '') ?>">
-        <label class="form-label" for="email">Email</label>
-        <input class="form-control mb-3" id="email" type="email" name="email" required value="<?= e($_POST['email'] ?? '') ?>">
+        <label class="form-label" for="username">Username</label>
+        <input class="form-control mb-3" id="username" name="username" required pattern="[A-Za-z0-9_]{4,50}" value="<?= e($_POST['username'] ?? '') ?>">
         <label class="form-label" for="peran">Daftar sebagai</label>
         <select class="form-select mb-3" id="peran" name="peran">
             <?php foreach ($pilihan_peran as $nilai => $label): ?>

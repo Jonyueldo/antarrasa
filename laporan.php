@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     alihkan('laporan.php');
 }
 
-$akun = ambil_semua($conn, "SELECT id_pengguna, nama, peran FROM pengguna WHERE id_pengguna <> ? AND peran <> 'admin' ORDER BY peran, nama", 'i', [$saya['id']]);
+$akun = ambil_semua($conn, "SELECT id_pengguna, nama, username, peran FROM pengguna WHERE id_pengguna <> ? AND peran <> 'admin' ORDER BY peran, nama", 'i', [$saya['id']]);
 $laporan_saya = ambil_semua($conn, 'SELECT l.*, p.nama AS nama_terlapor FROM laporan l LEFT JOIN pengguna p ON p.id_pengguna = l.id_terlapor
     WHERE l.id_pelapor = ? ORDER BY l.id_laporan DESC', 'i', [$saya['id']]);
 $judul = 'Lapor Akun';
@@ -37,7 +37,7 @@ require __DIR__ . '/includes/header.php';
     <select class="form-select mb-3" id="id_terlapor" name="id_terlapor" required>
         <option value="">-- pilih akun --</option>
         <?php foreach ($akun as $a): ?>
-            <option value="<?= e($a['id_pengguna']) ?>"><?= e($a['nama']) ?> (<?= e($a['peran']) ?>)</option>
+            <option value="<?= e($a['id_pengguna']) ?>"><?= e($a['nama']) ?> @<?= e($a['username']) ?> (<?= e($a['peran']) ?>)</option>
         <?php endforeach; ?>
     </select>
     <label class="form-label" for="id_pesanan">Nomor pesanan terkait (opsional)</label>
