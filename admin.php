@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// Admin: moderasi menu, manajemen akun (suspend/ban/hapus), dan verifikasi laporan.
+// Admin: moderasi menu, verifikasi laporan (suspend/ban), dan daftar akun (aktifkan kembali/hapus).
 require_once __DIR__ . '/config/database.php';
 mulai_sesi();
 $saya = wajib_login($conn, 'admin');
@@ -26,24 +26,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             eksekusi($conn, 'UPDATE menu SET status_moderasi = ?, data_usulan_json = NULL WHERE id_menu = ?', 'si', [$status, $id]);
         }
         flash($m ? 'Pengajuan menu ' . ($aksi === 'setujui' ? 'disetujui.' : 'ditolak.') : 'Pengajuan tidak ditemukan.', $m ? 'success' : 'danger');
-    } elseif (in_array($aksi, ['suspend', 'ban', 'pulihkan', 'hapus'], true)) {
-        // Sanksi akun; peran <> 'admin' mencegah admin menyanksi dirinya sendiri/admin lain.
-        $target = (int) ($_POST['id_pengguna'] ?? 0);
-        $syarat = " WHERE id_pengguna = ? AND peran <> 'admin'";
-        $n = match ($aksi) {
-            'suspend'  => eksekusi($conn, "UPDATE pengguna SET status_akun = 'suspend_sementara', suspend_sampai = NOW() + INTERVAL ? HOUR" . $syarat,
-                'ii', [max(1, min(8760, (int) ($_POST['jam'] ?? 1))), $target]),
-            'ban'      => eksekusi($conn, "UPDATE pengguna SET status_akun = 'ban_permanen', suspend_sampai = NULL" . $syarat, 'i', [$target]),
-            'pulihkan' => eksekusi($conn, "UPDATE pengguna SET status_akun = 'aktif', suspend_sampai = NULL" . $syarat, 'i', [$target]),
-            'hapus'    => eksekusi($conn, 'DELETE FROM pengguna' . $syarat, 'i', [$target]),
-        };
-        if ($n > 0) {
-            eksekusi($conn, "UPDATE laporan SET status_laporan = 'diverifikasi' WHERE id_laporan = ?", 'i', [(int) ($_POST['id_laporan'] ?? 0)]);
+    } elseif (in_array($aksi, ['suspend', 'ban', 'tolak_laporan'], true)) {
+        // Verifikasi laporan: satu-satunya tempat menjatuhkan suspend/ban. Terlapor diambil dari laporan, bukan dari form.
+        $id_laporan = (int) ($_POST['id_laporan'] ?? 0);
+        $l = ambil_satu($conn, "SELECT l.id_terlapor, p.peran FROM laporan l JOIN pengguna p ON p.id_pengguna = l.id_terlapor
+            WHERE l.id_laporan = ? AND l.status_laporan = 'menunggu'", 'i', [$id_laporan]);
+        // Akun admin tidak bisa disanksi; laporan terhadapnya hanya bisa ditolak.
+        $ok = $l !== null && ($aksi === 'tolak_laporan' || $l['peran'] !== 'admin');
+        if ($ok) {
+            mysqli_begin_transaction($conn);
+            if ($aksi !== 'tolak_laporan') {
+                $ok = ($aksi === 'suspend'
+                    ? eksekusi($conn, "UPDATE pengguna SET status_akun = 'suspend_sementara', suspend_sampai = NOW() + INTERVAL ? HOUR WHERE id_pengguna = ?",
+                        'ii', [max(1, min(8760, (int) ($_POST['jam'] ?? 1))), $l['id_terlapor']])
+                    : eksekusi($conn, "UPDATE pengguna SET status_akun = 'ban_permanen', suspend_sampai = NULL WHERE id_pengguna = ?", 'i', [$l['id_terlapor']])) >= 0;
+            }
+            $ok = $ok && eksekusi($conn, 'UPDATE laporan SET status_laporan = ? WHERE id_laporan = ?', 'si',
+                [$aksi === 'tolak_laporan' ? 'ditolak' : 'diverifikasi', $id_laporan]) > 0;
+            $ok ? mysqli_commit($conn) : mysqli_rollback($conn);
         }
-        flash($n > 0 ? 'Tindakan akun berhasil.' : 'Tindakan gagal atau tidak ada perubahan.', $n > 0 ? 'success' : 'danger');
-    } elseif ($aksi === 'tolak_laporan') {
-        eksekusi($conn, "UPDATE laporan SET status_laporan = 'ditolak' WHERE id_laporan = ? AND status_laporan = 'menunggu'", 'i', [(int) ($_POST['id_laporan'] ?? 0)]);
-        flash('Laporan ditolak.');
+        $pesan = ['suspend' => 'Laporan disetujui, akun terlapor disuspend.', 'ban' => 'Laporan disetujui, akun terlapor diban permanen.', 'tolak_laporan' => 'Laporan ditolak.'];
+        flash($ok ? $pesan[$aksi] : 'Laporan tidak ditemukan atau sudah diproses.', $ok ? 'success' : 'danger');
+    } elseif ($aksi === 'pulihkan' || $aksi === 'hapus') {
+        // Daftar akun: hanya cabut sanksi atau hapus; akun admin selalu dikunci.
+        $syarat = " WHERE id_pengguna = ? AND peran <> 'admin'";
+        $n = $aksi === 'pulihkan'
+            ? eksekusi($conn, "UPDATE pengguna SET status_akun = 'aktif', suspend_sampai = NULL" . $syarat, 'i', [(int) ($_POST['id_pengguna'] ?? 0)])
+            : eksekusi($conn, 'DELETE FROM pengguna' . $syarat, 'i', [(int) ($_POST['id_pengguna'] ?? 0)]);
+        flash($n > 0 ? ($aksi === 'hapus' ? 'Akun dihapus.' : 'Akun diaktifkan kembali.') : 'Tindakan gagal atau tidak ada perubahan.', $n > 0 ? 'success' : 'danger');
     }
     alihkan('admin.php');
 }
@@ -55,24 +65,6 @@ $statistik = array_count_values(array_column($akun, 'peran'));
 $laporan = ambil_semua($conn, "SELECT l.*, a.nama AS nama_pelapor, b.nama AS nama_terlapor, b.peran AS peran_terlapor FROM laporan l
     JOIN pengguna a ON a.id_pengguna = l.id_pelapor JOIN pengguna b ON b.id_pengguna = l.id_terlapor
     WHERE l.status_laporan = 'menunggu' ORDER BY l.id_laporan");
-
-// Tombol sanksi untuk satu akun (dipakai di daftar akun dan laporan).
-function form_sanksi(int $id_pengguna, int $id_laporan = 0): string
-{
-    $tersembunyi = input_csrf() . '<input type="hidden" name="id_pengguna" value="' . $id_pengguna . '"><input type="hidden" name="id_laporan" value="' . $id_laporan . '">';
-    $html = '<form method="post" class="d-inline-flex gap-1">' . $tersembunyi
-        . '<input class="form-control form-control-sm" style="width:70px" type="number" name="jam" value="24" min="1" max="8760" aria-label="Jumlah jam">'
-        . '<button class="btn btn-sm btn-warning" name="aksi" value="suspend">Suspend Jam</button></form> ';
-    foreach (['ban' => ['Ban Permanen', 'danger'], 'pulihkan' => ['Pulihkan', 'outline-success'], 'hapus' => ['Hapus', 'outline-danger']] as $aksi => [$label, $warna]) {
-        if ($id_laporan && $aksi !== 'ban') {
-            continue; // di laporan cukup suspend / ban
-        }
-        $konfirmasi = $aksi === 'hapus' ? ' onsubmit="return confirm(&quot;Hapus akun ini?&quot;)"' : '';
-        $html .= '<form method="post" class="d-inline"' . $konfirmasi . '>' . $tersembunyi
-            . '<button class="btn btn-sm btn-' . $warna . '" name="aksi" value="' . $aksi . '">' . $label . '</button></form> ';
-    }
-    return $html;
-}
 
 $judul = 'Admin';
 require __DIR__ . '/includes/header.php';
@@ -126,10 +118,14 @@ require __DIR__ . '/includes/header.php';
                 <td><?= e($l['nama_terlapor']) ?> (<?= e($l['peran_terlapor']) ?>)</td>
                 <td><?= $l['id_pesanan'] ? '#' . e($l['id_pesanan']) : '-' ?></td>
                 <td><?= e($l['alasan']) ?></td>
-                <td class="text-nowrap">
-                    <?= form_sanksi((int) $l['id_terlapor'], (int) $l['id_laporan']) ?>
-                    <form method="post" class="d-inline"><?= input_csrf() ?>
+                <td>
+                    <form method="post" class="d-flex flex-wrap gap-1"><?= input_csrf() ?>
                         <input type="hidden" name="id_laporan" value="<?= e($l['id_laporan']) ?>">
+                        <?php if ($l['peran_terlapor'] !== 'admin'): ?>
+                            <input class="form-control form-control-sm" style="width:70px" type="number" name="jam" value="24" min="1" max="8760" aria-label="Lama suspend (jam)">
+                            <button class="btn btn-sm btn-warning" name="aksi" value="suspend">Setujui &amp; Suspend (jam)</button>
+                            <button class="btn btn-sm btn-danger" name="aksi" value="ban" onclick="return confirm('Ban permanen akun ini?')">Setujui &amp; Ban Permanen</button>
+                        <?php endif; ?>
                         <button class="btn btn-sm btn-outline-secondary" name="aksi" value="tolak_laporan">Tolak Laporan</button>
                     </form>
                 </td>
@@ -148,19 +144,31 @@ require __DIR__ . '/includes/header.php';
 </div>
 <div class="table-responsive">
     <table class="table bg-white align-middle">
-        <thead><tr><th>Nama</th><th>Username</th><th>Peran</th><th>Status</th><th>Tindakan</th></tr></thead>
+        <thead><tr><th>Username</th><th>Nama</th><th>Peran</th><th>Status</th><th>Tindakan</th></tr></thead>
         <tbody>
         <?php foreach ($akun as $a): ?>
             <tr>
-                <td><?= e($a['nama']) ?></td>
                 <td><?= e($a['username']) ?></td>
+                <td><?= e($a['nama']) ?></td>
                 <td><?= e($a['peran']) ?></td>
                 <td>
                     <?php if ($a['status_akun'] === 'ban_permanen'): ?><span class="badge bg-danger">Ban permanen</span>
                     <?php elseif ($a['sisa_detik'] > 0): ?><span class="badge bg-warning text-dark">Suspend s/d <?= e($a['suspend_sampai']) ?></span>
                     <?php else: ?><span class="badge bg-success">Aktif</span><?php endif; ?>
                 </td>
-                <td class="text-nowrap"><?= $a['peran'] === 'admin' ? '-' : form_sanksi((int) $a['id_pengguna']) ?></td>
+                <td class="text-nowrap">
+                    <?php if ($a['peran'] === 'admin'): ?>
+                        <span class="text-muted small">Terkunci</span>
+                    <?php else: ?>
+                        <form method="post" class="d-inline"><?= input_csrf() ?>
+                            <input type="hidden" name="id_pengguna" value="<?= e($a['id_pengguna']) ?>">
+                            <?php if ($a['status_akun'] === 'ban_permanen' || $a['sisa_detik'] > 0): ?>
+                                <button class="btn btn-sm btn-outline-success" name="aksi" value="pulihkan">Aktifkan Kembali</button>
+                            <?php endif; ?>
+                            <button class="btn btn-sm btn-outline-danger" name="aksi" value="hapus" onclick="return confirm('Hapus akun ini?')">Hapus Akun</button>
+                        </form>
+                    <?php endif; ?>
+                </td>
             </tr>
         <?php endforeach; ?>
         </tbody>

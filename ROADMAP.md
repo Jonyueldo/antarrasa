@@ -22,4 +22,4 @@ Setiap poin dikerjakan satu per satu, diverifikasi dengan `C:\xampp\php\php.exe 
 - [x] 11. Driver: alur bertahap Terima/Tolak → Mulai Antar (GPS + estimasi) → Konfirmasi Diterima, peta Leaflet + OpenStreetMap untuk driver dan pelanggan.
 - [x] 12. Pelanggan: ulasan bintang 1-5 dan komentar pada pesanan `selesai`.
 - [x] 13. Pelaporan akun oleh pelanggan, merchant, dan driver (tabel `laporan`).
-- [x] 14. Admin: statistik akun, daftar akun, hapus, Suspend X Jam / Ban Permanen / Pulihkan, dan verifikasi laporan dengan tindakan langsung.
+- [x] 14. Admin: statistik & daftar akun (username, nama, peran, status) dengan Aktifkan Kembali / Hapus Akun (akun admin terkunci); Suspend X Jam / Ban Permanen **hanya** lewat verifikasi laporan (Setujui & Suspend, Setujui & Ban, Tolak Laporan).
