@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="700" height="440" viewBox="0 0 700 440" role="img" aria-label="Gambar ilustrasi: Ayam &amp; Bebek">
-  <rect width="700" height="440" fill="#fde68a"/>
-  <circle cx="350" cy="190" r="120" fill="#ffffff" opacity="0.85"/>
-  <circle cx="350" cy="190" r="88" fill="none" stroke="#b45309" stroke-width="6" opacity="0.55"/>
-  <path d="M300 175 q50 -55 100 0 q-50 40 -100 0z" fill="#b45309" opacity="0.8"/>
-  <rect x="246" y="150" width="8" height="90" rx="4" fill="#b45309" opacity="0.7"/>
-  <rect x="446" y="150" width="8" height="90" rx="4" fill="#b45309" opacity="0.7"/>
-  <text x="350" y="370" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#b45309">Ayam &amp; Bebek</text>
-</svg>

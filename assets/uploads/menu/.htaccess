@@ -1,5 +1,0 @@
-# Folder unggahan foto menu: hanya file statis, tanpa eksekusi skrip & tanpa daftar isi
-Options -Indexes
-<FilesMatch "\.(?i:php\d?|phtml|phar|pl|py|cgi|sh|htaccess)$">
-    Require all denied
-</FilesMatch>
