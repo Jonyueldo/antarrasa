@@ -5,6 +5,13 @@ declare(strict_types=1);
 mulai_sesi();
 $p = pengguna_login();
 $flash = flash();
+$nav = match ($p['peran'] ?? null) {
+    'pelanggan' => ['index.php' => 'Katalog', 'pesanan.php' => 'Keranjang (' . jumlah_keranjang() . ')', 'riwayat.php' => 'Pesanan Saya', 'laporan.php' => 'Lapor'],
+    'merchant'  => ['merchant.php' => 'Menu Saya', 'riwayat.php' => 'Pesanan Masuk', 'laporan.php' => 'Lapor'],
+    'driver'    => ['riwayat.php' => 'Tugas Antar', 'laporan.php' => 'Lapor'],
+    'admin'     => ['admin.php' => 'Admin', 'riwayat.php' => 'Semua Pesanan', 'index.php' => 'Katalog'],
+    default     => ['index.php' => 'Katalog'],
+};
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -21,14 +28,9 @@ $flash = flash();
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuNav" aria-label="Buka menu"><span class="navbar-toggler-icon"></span></button>
         <div class="collapse navbar-collapse" id="menuNav">
             <ul class="navbar-nav me-auto">
-                <li class="nav-item"><a class="nav-link" href="index.php">Katalog</a></li>
-                <?php if ($p): ?>
-                    <li class="nav-item"><a class="nav-link" href="pesanan.php">Keranjang (<?= jumlah_keranjang() ?>)</a></li>
-                    <li class="nav-item"><a class="nav-link" href="riwayat.php"><?= $p['peran'] === 'admin' ? 'Semua Pesanan' : 'Riwayat' ?></a></li>
-                    <?php if ($p['peran'] === 'admin'): ?>
-                        <li class="nav-item"><a class="nav-link" href="admin.php">Kelola Menu</a></li>
-                    <?php endif; ?>
-                <?php endif; ?>
+                <?php foreach ($nav as $url => $label): ?>
+                    <li class="nav-item"><a class="nav-link" href="<?= e($url) ?>"><?= e($label) ?></a></li>
+                <?php endforeach; ?>
             </ul>
             <div class="navbar-text">
                 <?php if ($p): ?>

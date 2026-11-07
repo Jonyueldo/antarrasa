@@ -3,7 +3,16 @@ declare(strict_types=1);
 
 // Fungsi bantu tunggal: sesi, CSRF, query, keranjang, dan format.
 
-const STATUS_BERIKUT = ['Menunggu' => 'Diproses', 'Diproses' => 'Selesai'];
+// Menu yang tampil di katalog: versi aktifnya sudah disetujui admin.
+const MENU_TAMPIL = "status_moderasi IN ('disetujui', 'menunggu_ubah', 'menunggu_hapus')";
+
+const LABEL_STATUS = [
+    'menunggu_driver' => ['Menunggu Driver', 'warning text-dark'],
+    'menuju_merchant' => ['Driver Menuju Merchant', 'info text-dark'],
+    'diantar'         => ['Sedang Diantar', 'primary'],
+    'selesai'         => ['Selesai', 'success'],
+    'ditolak_driver'  => ['Ditolak Driver', 'secondary'],
+];
 
 function e(mixed $nilai): string
 {
@@ -13,6 +22,12 @@ function e(mixed $nilai): string
 function format_rupiah(float|int|string $angka): string
 {
     return 'Rp ' . number_format((float) $angka, 0, ',', '.');
+}
+
+function badge_status(string $status): string
+{
+    [$label, $warna] = LABEL_STATUS[$status] ?? [$status, 'secondary'];
+    return '<span class="badge bg-' . $warna . '">' . e($label) . '</span>';
 }
 
 function mulai_sesi(): void
@@ -46,6 +61,11 @@ function token_csrf(): string
     return $_SESSION['csrf'] ??= bin2hex(random_bytes(16));
 }
 
+function input_csrf(): string
+{
+    return '<input type="hidden" name="csrf" value="' . e(token_csrf()) . '">';
+}
+
 // Wajib dipanggil di awal setiap handler POST.
 function cek_csrf(): void
 {
@@ -53,30 +73,6 @@ function cek_csrf(): void
         http_response_code(400);
         exit('Permintaan tidak valid (token CSRF salah).');
     }
-}
-
-function pengguna_login(): ?array
-{
-    return $_SESSION['pengguna'] ?? null;
-}
-
-// Paksa login; jika $peran diisi, peran harus cocok. Mengembalikan data pengguna.
-function wajib_login(?string $peran = null): array
-{
-    $p = pengguna_login();
-    if ($p === null) {
-        alihkan('login.php');
-    }
-    if ($peran !== null && $p['peran'] !== $peran) {
-        alihkan('index.php');
-    }
-    return $p;
-}
-
-function masuk_sesi(array $p): void
-{
-    session_regenerate_id(true);
-    $_SESSION['pengguna'] = ['id' => (int) $p['id_pengguna'], 'nama' => $p['nama_lengkap'], 'peran' => $p['peran']];
 }
 
 // ---- Database (prepared statement) ----
@@ -127,7 +123,53 @@ function eksekusi(mysqli $conn, string $sql, string $tipe = '', array $param = [
     return $n;
 }
 
-// ---- Keranjang (session: id_menu => jumlah) ----
+// ---- Akun & sesi ----
+
+// Cari pengguna berdasarkan id atau email; sisa_detik = sisa waktu suspend (dihitung di MySQL).
+function cari_pengguna(mysqli $conn, bool $by_email, int|string $nilai): ?array
+{
+    $kolom = $by_email ? 'email' : 'id_pengguna';
+    return ambil_satu($conn, "SELECT *, GREATEST(COALESCE(TIMESTAMPDIFF(SECOND, NOW(), suspend_sampai), 0), 0) AS sisa_detik
+        FROM pengguna WHERE $kolom = ?", $by_email ? 's' : 'i', [$nilai]);
+}
+
+// Pesan penolakan bila akun diban atau masih disuspend; null jika boleh masuk.
+function pesan_blokir(array $u): ?string
+{
+    if ($u['status_akun'] === 'ban_permanen') {
+        return 'Akun Anda diblokir permanen.';
+    }
+    $s = (int) $u['sisa_detik'];
+    return $s > 0 ? sprintf('Akun Anda disuspend. Sisa waktu: %d jam %d menit.', intdiv($s, 3600), intdiv($s % 3600, 60) + 1) : null;
+}
+
+function masuk_sesi(array $u): void
+{
+    session_regenerate_id(true);
+    $_SESSION['pengguna'] = ['id' => (int) $u['id_pengguna'], 'nama' => $u['nama'], 'peran' => $u['peran']];
+}
+
+function pengguna_login(): ?array
+{
+    return $_SESSION['pengguna'] ?? null;
+}
+
+// Paksa login (dicek ulang ke database tiap request); bila $peran diisi, peran harus salah satunya.
+function wajib_login(mysqli $conn, string ...$peran): array
+{
+    $sesi = pengguna_login();
+    $u = $sesi ? cari_pengguna($conn, false, $sesi['id']) : null;
+    if (!$u || pesan_blokir($u)) {
+        unset($_SESSION['pengguna']);
+        alihkan('login.php');
+    }
+    if ($peran && !in_array($u['peran'], $peran, true)) {
+        alihkan('index.php');
+    }
+    return ['id' => (int) $u['id_pengguna'], 'nama' => $u['nama'], 'peran' => $u['peran']];
+}
+
+// ---- Keranjang (session: id_menu => jumlah, satu merchant) ----
 
 function jumlah_keranjang(): int
 {
@@ -143,7 +185,8 @@ function detail_keranjang(mysqli $conn): array
     }
     $id = array_keys($keranjang);
     $in = implode(',', array_fill(0, count($id), '?'));
-    $baris = ambil_semua($conn, "SELECT * FROM menu WHERE id_menu IN ($in)", str_repeat('i', count($id)), $id);
+    $baris = ambil_semua($conn, "SELECT *, (" . MENU_TAMPIL . " AND status_stok = 'tersedia') AS bisa_dipesan
+        FROM menu WHERE id_menu IN ($in)", str_repeat('i', count($id)), $id);
     $total = 0.0;
     foreach ($baris as &$b) {
         $b['jumlah'] = $keranjang[$b['id_menu']];
@@ -151,10 +194,4 @@ function detail_keranjang(mysqli $conn): array
         $total += $b['subtotal'];
     }
     return [$baris, $total];
-}
-
-function badge_status(string $status): string
-{
-    $warna = ['Menunggu' => 'warning text-dark', 'Diproses' => 'info text-dark', 'Selesai' => 'success'][$status] ?? 'secondary';
-    return '<span class="badge bg-' . $warna . '">' . e($status) . '</span>';
 }

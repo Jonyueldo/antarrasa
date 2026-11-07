@@ -15,7 +15,7 @@ Setiap poin dikerjakan satu per satu, diverifikasi dengan `C:\xampp\php\php.exe 
 ## Tahap 2 — 4 peran, moderasi, pengantaran, ulasan, pelaporan
 
 - [x] 6. Skema 5 tabel di `database/antarrasa.sql` (ENUM peran, status akun, moderasi menu, status pengantaran, laporan).
-- [ ] 7. Autentikasi 4 peran (login email) dengan penolakan akun `ban_permanen` atau masih disuspend beserta sisa waktunya.
+- [x] 7. Autentikasi 4 peran (login email) dengan penolakan akun `ban_permanen` atau masih disuspend beserta sisa waktunya.
 - [ ] 8. Merchant: ajukan tambah/ubah/hapus menu + unggah gambar (`uploads/menu/`) berstatus `menunggu_*`; ubah `status_stok` langsung.
 - [ ] 9. Admin: moderasi pengajuan menu (Setujui / Tolak).
 - [ ] 10. Pelanggan: katalog menu `disetujui` + `tersedia`, keranjang session satu merchant, checkout.

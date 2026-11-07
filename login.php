@@ -11,13 +11,15 @@ if (pengguna_login()) {
 $galat = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     cek_csrf();
-    $username = trim((string) ($_POST['username'] ?? ''));
-    $user = ambil_satu($conn, 'SELECT * FROM pengguna WHERE username = ?', 's', [$username]);
-    if ($user && password_verify((string) ($_POST['password'] ?? ''), $user['password'])) {
-        masuk_sesi($user);
-        alihkan($user['peran'] === 'admin' ? 'admin.php' : 'index.php');
+    $u = cari_pengguna($conn, true, trim((string) ($_POST['email'] ?? '')));
+    if (!$u || !password_verify((string) ($_POST['password'] ?? ''), $u['password'])) {
+        $galat = 'Email atau kata sandi salah.';
+    } elseif ($blokir = pesan_blokir($u)) {
+        $galat = $blokir;
+    } else {
+        masuk_sesi($u);
+        alihkan(['admin' => 'admin.php', 'merchant' => 'merchant.php', 'driver' => 'riwayat.php'][$u['peran']] ?? 'index.php');
     }
-    $galat = 'Username atau kata sandi salah.';
 }
 
 $judul = 'Masuk';
@@ -27,9 +29,9 @@ require __DIR__ . '/includes/header.php';
     <h1 class="h4 mb-3">Masuk</h1>
     <?php if ($galat): ?><div class="alert alert-danger"><?= e($galat) ?></div><?php endif; ?>
     <form method="post" class="card card-body">
-        <input type="hidden" name="csrf" value="<?= e(token_csrf()) ?>">
-        <label class="form-label" for="username">Username</label>
-        <input class="form-control mb-3" id="username" name="username" required autofocus>
+        <?= input_csrf() ?>
+        <label class="form-label" for="email">Email</label>
+        <input class="form-control mb-3" id="email" type="email" name="email" required autofocus value="<?= e($_POST['email'] ?? '') ?>">
         <label class="form-label" for="password">Kata sandi</label>
         <input class="form-control mb-3" id="password" type="password" name="password" required>
         <button class="btn btn-danger">Masuk</button>
