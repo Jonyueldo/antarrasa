@@ -36,6 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             WHERE id_pesanan = ? AND status_pesanan = ? AND COALESCE(id_driver, ?) = ?',
             'siddiisii', [$ke, $saya['id'], $lat, $lng, $estimasi, $id, $dari, $saya['id'], $saya['id']]);
         flash($n > 0 ? 'Pesanan #' . $id . ': ' . LABEL_STATUS[$ke][0] . '.' : 'Aksi tidak dapat dilakukan (pesanan sudah diambil atau statusnya berubah).', $n > 0 ? 'success' : 'danger');
+    } elseif ($peran === 'pelanggan' && $aksi === 'ulas') {
+        $rating = (int) ($_POST['rating'] ?? 0);
+        $n = $rating >= 1 && $rating <= 5 ? eksekusi($conn, "UPDATE pesanan SET rating = ?, ulasan = ? WHERE id_pesanan = ? AND id_pelanggan = ?
+            AND status_pesanan = 'selesai' AND rating IS NULL", 'isii', [$rating, trim((string) ($_POST['ulasan'] ?? '')), $id, $saya['id']]) : 0;
+        flash($n > 0 ? 'Terima kasih atas ulasan Anda.' : 'Ulasan tidak dapat disimpan.', $n > 0 ? 'success' : 'danger');
     }
     alihkan('riwayat.php');
 }
@@ -98,6 +103,22 @@ require __DIR__ . '/includes/header.php';
             <?php if ($o['status_pesanan'] === 'diantar' && $o['lat_driver'] !== null): ?>
                 <div class="alert alert-info py-2 mb-2">Estimasi tiba &plusmn; <?= e($o['estimasi_menit']) ?> menit</div>
                 <div class="peta rounded border mb-2" style="height:220px" data-lat="<?= e($o['lat_driver']) ?>" data-lng="<?= e($o['lng_driver']) ?>"></div>
+            <?php endif; ?>
+
+            <?php if ($o['rating'] !== null): ?>
+                <div class="text-warning" aria-label="Rating <?= e($o['rating']) ?> dari 5"><?= str_repeat('&#9733;', (int) $o['rating']) . str_repeat('&#9734;', 5 - (int) $o['rating']) ?></div>
+                <div class="small fst-italic mb-2"><?= e($o['ulasan']) ?></div>
+            <?php elseif ($peran === 'pelanggan' && $o['status_pesanan'] === 'selesai'): ?>
+                <form method="post" class="d-flex flex-wrap gap-2 align-items-center">
+                    <?= input_csrf() ?>
+                    <input type="hidden" name="aksi" value="ulas">
+                    <input type="hidden" name="id_pesanan" value="<?= e($o['id_pesanan']) ?>">
+                    <select class="form-select form-select-sm w-auto" name="rating" aria-label="Rating">
+                        <?php for ($b = 5; $b >= 1; $b--): ?><option value="<?= $b ?>"><?= str_repeat('&#9733;', $b) ?></option><?php endfor; ?>
+                    </select>
+                    <input class="form-control form-control-sm flex-grow-1 w-auto" name="ulasan" placeholder="Komentar (opsional)" aria-label="Komentar">
+                    <button class="btn btn-sm btn-warning">Kirim Ulasan</button>
+                </form>
             <?php endif; ?>
 
             <?php if ($peran === 'driver'): ?>
