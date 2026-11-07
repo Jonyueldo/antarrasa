@@ -139,8 +139,8 @@ function pesan_blokir(array $u): ?string
     if ($u['status_akun'] === 'ban_permanen') {
         return 'Akun Anda diblokir permanen.';
     }
-    $s = (int) $u['sisa_detik'];
-    return $s > 0 ? sprintf('Akun Anda disuspend. Sisa waktu: %d jam %d menit.', intdiv($s, 3600), intdiv($s % 3600, 60) + 1) : null;
+    $menit = (int) ceil((int) $u['sisa_detik'] / 60);
+    return $menit > 0 ? sprintf('Akun Anda disuspend. Sisa waktu: %d jam %d menit.', intdiv($menit, 60), $menit % 60) : null;
 }
 
 function masuk_sesi(array $u): void
